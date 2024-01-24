@@ -1,9 +1,11 @@
 from pysamp.textdraw import TextDraw
+from pysamp.playertextdraw import PlayerTextDraw
 
 
 class TextDraws:
     logo = {}
-
+    capture_td = {}
+    class_selection_td = {}
     @classmethod
     def load(cls) -> None:
         cls.logo[0] = TextDraw.create(556.000000, 8.088897, "S")
@@ -34,4 +36,80 @@ class TextDraws:
         cls.logo[2].set_shadow(0)
         cls.logo[2].set_outline(0)
         cls.logo[2].font(4)
-        return print(f"Created: TextDraw (server) -> ID: {[key for key in cls.logo]}")
+
+        cls.capture_td[0] = TextDraw.create(5.333312, 275.851837, "Time: ")
+        cls.capture_td[0].letter_size(0.323332, 1.346961)
+        cls.capture_td[0].alignment(1)
+        cls.capture_td[0].color(-1)
+        cls.capture_td[0].set_shadow(0)
+        cls.capture_td[0].set_outline(1)
+        cls.capture_td[0].background_color(128)
+        cls.capture_td[0].font(1)
+        cls.capture_td[0].set_proportional(True)
+
+        cls.capture_td[1] = TextDraw.create(4.666645, 287.637084, "Varios Los Aztecas  ~r~0")
+        cls.capture_td[1].letter_size(0.315997, 1.226662)
+        cls.capture_td[1].alignment(1)
+        cls.capture_td[1].color(-1)
+        cls.capture_td[1].set_shadow(0)
+        cls.capture_td[1].set_outline(1)
+        cls.capture_td[1].background_color(255)
+        cls.capture_td[1].font(1)
+        cls.capture_td[1].set_proportional(True)
+
+        cls.capture_td[2] = TextDraw.create(5.333312, 298.592864, "Los Santos Vagos  ~r~1")
+        cls.capture_td[2].letter_size(0.315997, 1.226662)
+        cls.capture_td[2].alignment(1)
+        cls.capture_td[2].color(-1)
+        cls.capture_td[2].set_shadow(0)
+        cls.capture_td[2].set_outline(1)
+        cls.capture_td[2].background_color(255)
+        cls.capture_td[2].font(1)
+        cls.capture_td[2].set_proportional(True)
+        cls.capture_td[2].set_outline(1)
+        cls.capture_td[2].background_color(255)
+        cls.capture_td[2].font(1)
+        cls.capture_td[2].set_proportional(True)
+
+        cls.class_selection_td[0] = TextDraw.create(200.000000, 350.000000, "<<<")
+        cls.class_selection_td[0].font(1)
+        cls.class_selection_td[0].letter_size(0.600000, 2.000000)
+        cls.class_selection_td[0].text_size(240.000000, 15.000000)
+        cls.class_selection_td[0].set_outline(1)
+        cls.class_selection_td[0].set_shadow(0)
+        cls.class_selection_td[0].alignment(1)
+        cls.class_selection_td[0].color(-1)
+        cls.class_selection_td[0].background_color(255)
+        cls.class_selection_td[0].use_box(True)
+        cls.class_selection_td[0].box_color(50)
+        cls.class_selection_td[0].set_proportional(True)
+        cls.class_selection_td[0].set_selectable(True)
+
+        cls.class_selection_td[1] = TextDraw.create(400.000000, 350.000000, ">>>")
+        cls.class_selection_td[1].font(1)
+        cls.class_selection_td[1].letter_size(0.600000, 2.000000)
+        cls.class_selection_td[1].text_size(440.000000, 15.000000)
+        cls.class_selection_td[1].set_outline(1)
+        cls.class_selection_td[1].set_shadow(0)
+        cls.class_selection_td[1].alignment(1)
+        cls.class_selection_td[1].color(-1)
+        cls.class_selection_td[1].background_color(255)
+        cls.class_selection_td[1].use_box(True)
+        cls.class_selection_td[1].box_color(50)
+        cls.class_selection_td[1].set_proportional(True)
+        cls.class_selection_td[1].set_selectable(True)
+
+        cls.class_selection_td[2] = TextDraw.create(295.000000, 125.000000, "DONE")
+        cls.class_selection_td[2].font(1)
+        cls.class_selection_td[2].letter_size(0.600000, 2.000000)
+        cls.class_selection_td[2].text_size(345.000000, 15.000000)
+        cls.class_selection_td[2].set_outline(1)
+        cls.class_selection_td[2].set_shadow(0)
+        cls.class_selection_td[2].alignment(1)
+        cls.class_selection_td[2].color(-1)
+        cls.class_selection_td[2].background_color(255)
+        cls.class_selection_td[2].use_box(True)
+        cls.class_selection_td[2].box_color(50)
+        cls.class_selection_td[2].set_proportional(True)
+        cls.class_selection_td[2].set_selectable(True)
+        return print(f"Created: TextDraw (server)")

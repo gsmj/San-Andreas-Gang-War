@@ -1,22 +1,45 @@
 from dataclasses import dataclass, field
-from .utils import Colors
+from .utils import Colors, ServerWorldIDs, convert_seconds
+from pysamp import text_draw_show_for_player
 from pystreamer.dynamiccp import DynamicCheckpoint
 from pystreamer.dynamicpickup import DynamicPickup
+from .textdraws import TextDraws
+
+
 
 class Gang:
-    def __init__(self, skins: list[int], gang_name: str, gang_id: int, rangs: dict[int, str], color: int, game_text_color: str, turfs: list[int], warehouse: DynamicCheckpoint, enter_exit: list[DynamicPickup], spawn_pos: list[float, float, float], interior_id: int, is_capture: bool = False) -> None:
+    def __init__(
+        self,
+        skins: list[int],
+        gang_name: str,
+        gang_id: int,
+        rangs: dict[int, str],
+        color: int,
+        game_text_color: str,
+        color_hex: str,
+        turfs: list[int],
+        map_icon: int,
+        warehouse: DynamicCheckpoint,
+        enter_exit: list[DynamicPickup],
+        spawn_pos: list[float, float, float],
+        interior_id: int,
+        capture_id: int = -1,
+        is_capturing: bool = False) -> None:
         self.skins = skins
         self.gang_name = gang_name
         self.gang_id = gang_id
         self.rangs = rangs
         self.color = color
         self.game_text_color = game_text_color
+        self.color_hex = color_hex
         self.turfs = turfs
+        self.map_icon = map_icon
         self.warehouse = warehouse
         self.enter_exit = enter_exit
         self.spawn_pos = spawn_pos
         self.interior_id = interior_id
-        self.is_capture = is_capture
+        self.capture_id = capture_id
+        self.is_capturing = is_capturing
 
 
 @dataclass
@@ -155,22 +178,52 @@ class DefaultGangZones:
     ]
 
 
-@dataclass
-class CaptureGangData:
-    gang_atk_id: int
-    gang_def_id: int
-    gang_atk_score: int = 0
-    gang_def_score: int = 0
-    time: int = 1800
-
-
-class Capture:
-    def __init__(self, gangs: CaptureGangData, gangzone_id: int):
-        self.gangs = gangs
+class GangZoneData:
+    _registry = {}
+    def __init__(self, gangzone_id: int, gang_id: int, color: int, gang_atk_id: int, gang_def_id: int, gang_atk_score: int, gang_def_score: int, capture_cooldown: int, is_capture: bool, capture_time: int):
         self.gangzone_id = gangzone_id
+        self.gang_id = gang_id
+        self.color = color
+        self.gang_atk_id = gang_atk_id
+        self.gang_def_id = gang_def_id
+        self.gang_atk_score = gang_atk_score
+        self.gang_def_score = gang_def_score
+        self.capture_cooldown = capture_cooldown
+        self.capture_time = capture_time
+        self.is_capture = is_capture
+
+    def using_registry(self, gangzone_id: int):
+        data = self._registry.get(gangzone_id)
+        if not data:
+            self._registry[gangzone_id] = self
+
+        return self
+
+    @classmethod
+    def get_from_registry(cls, gangzone_id: int) -> "GangZoneData":
+        return cls._registry[gangzone_id]
+
+    @classmethod
+    def get_all_from_registy(cls) -> dict[int, "GangZoneData"]:
+        return cls._registry
 
 
 gangs = { # ID: Gang inst
+    -1: Gang(
+        [0],
+        "Нет",
+        -1,
+        {50: "Нет", 100: "Нет", 150: "Нет", 200: "Нет", 250: "Нет", 300: "Нет", 350: "Нет", 400: "Нет", 450: "Нет", 500: "Нет"},
+        -1,
+        "",
+        "",
+        [],
+        0,
+        None,
+        None,
+        [0.0],
+        0,
+    ),
     0: Gang(
         [86, 105, 106, 107, 149, 195, 269, 270, 271], # Grove skins
         "The Families",
@@ -178,11 +231,13 @@ gangs = { # ID: Gang inst
         {50: "Newman", 100: "Hustla", 150: "Huckster", 200: "True", 250: "Warrior", 300: "Gangsta", 350: "O.G", 400: "Big Bro", 450: "Legend", 500: "Daddy"}, # Grove rangs
         Colors.grove,
         Colors.game_text_groove,
+        Colors.grove_hex,
         [],
-        DynamicCheckpoint.create(2455.5740, -1706.3229, 1013.5078, 1.0, world_id=2, interior_id=2, stream_distance=25.0), # Grove warehouse
+        62,
+        DynamicCheckpoint.create(2455.5740, -1706.3229, 1013.5078, 1.0, world_id=ServerWorldIDs.gangwar_world_interior, interior_id=2, stream_distance=25.0), # Grove warehouse
         [
-            DynamicPickup.create(1318, 23, 2495.4265, -1691.1404, 14.7656, world_id=0, interior_id=0), # Grove enter
-            DynamicPickup.create(1318, 23, 2468.8428, -1698.2579, 1013.5078, world_id=2) # Grove exit
+            DynamicPickup.create(1318, 23, 2495.4265, -1691.1404, 14.7656, world_id=ServerWorldIDs.gangwar_world, interior_id=0), # Grove enter
+            DynamicPickup.create(1318, 23, 2468.8428, -1698.2579, 1013.5078, world_id=ServerWorldIDs.gangwar_world_interior) # Grove exit
         ],
         [2452.0325, -1700.2831, 1013.5078], # Spawn pos
         2 # Interior id
@@ -194,11 +249,13 @@ gangs = { # ID: Gang inst
         {50: "Baby", 100: "Tested", 150: "Cracker", 200: "Nigga", 250: "Big Nigga", 300: "Gangster", 350: "Defender", 400: "Shooter", 450: "Star", 500: "Big Daddy"},
         Colors.ballas,
         Colors.game_text_ballas,
+        Colors.ballas_hex,
         [],
-        DynamicCheckpoint.create(-42.5511, 1412.5063, 1084.4297, 1.0, world_id=2, interior_id=8, stream_distance=25.0),
+        59,
+        DynamicCheckpoint.create(-42.5511, 1412.5063, 1084.4297, 1.0, world_id=ServerWorldIDs.gangwar_world_interior, interior_id=8, stream_distance=25.0),
         [
-            DynamicPickup.create(1318, 23, 2022.8790, -1120.2637, 26.4210, world_id=0, interior_id=0),
-            DynamicPickup.create(1318, 23, -42.6055, 1405.7949, 1084.4297, world_id=2)
+            DynamicPickup.create(1318, 23, 2022.8790, -1120.2637, 26.4210, world_id=ServerWorldIDs.gangwar_world, interior_id=0),
+            DynamicPickup.create(1318, 23, -42.6055, 1405.7949, 1084.4297, world_id=ServerWorldIDs.gangwar_world_interior)
         ],
         [-49.8575, 1408.5522, 1084.4297],
         8
@@ -210,11 +267,13 @@ gangs = { # ID: Gang inst
         {50: "Mamarracho", 100: "Compinche", 150: "Bandito", 200: "Vato Loco", 250: "Chaval", 300: "Forajido", 350: "Veterano", 400: "Elite", 450: "El Orgullo", 500: "Padre"},
         Colors.vagos,
         Colors.game_text_vagos,
+        Colors.vagos_hex,
         [],
-        DynamicCheckpoint.create(333.0990,1118.9160,1083.8903, 1.0, world_id=2, interior_id=5, stream_distance=25.0),
+        60,
+        DynamicCheckpoint.create(333.0990,1118.9160,1083.8903, 1.0, world_id=ServerWorldIDs.gangwar_world_interior, interior_id=5, stream_distance=25.0),
         [
-            DynamicPickup.create(1318, 23, 2756.2825, -1182.4691, 69.3998, world_id=0, interior_id=0),
-            DynamicPickup.create(1318, 23, 318.6152, 1114.8966, 1083.8828, world_id=2)
+            DynamicPickup.create(1318, 23, 2756.2825, -1182.4691, 69.3998, world_id=ServerWorldIDs.gangwar_world, interior_id=0),
+            DynamicPickup.create(1318, 23, 318.6152, 1114.8966, 1083.8828, world_id=ServerWorldIDs.gangwar_world_interior)
         ],
         [321.0667, 1123.1947, 1083.8828],
         5
@@ -226,11 +285,13 @@ gangs = { # ID: Gang inst
         {50: "Novato", 100: "Amigo", 150: "Asistente", 200: "Asesino", 250: "Latinos", 300: "Mejor", 350: "Empresa", 400: "Aproximado", 450: "Diputado", 500: "Padre"},
         Colors.aztecas,
         Colors.game_text_aztecas,
+        Colors.aztecas_hex,
         [],
-        DynamicCheckpoint.create(223.0524, 1249.5559, 1082.1406, 1.0, world_id=2, interior_id=2, stream_distance=25.0),
+        58,
+        DynamicCheckpoint.create(223.0524, 1249.5559, 1082.1406, 1.0, world_id=ServerWorldIDs.gangwar_world_interior, interior_id=2, stream_distance=25.0),
         [
-            DynamicPickup.create(1318, 23, 2185.8176, -1814.6786, 13.5469, world_id=0, interior_id=0),
-            DynamicPickup.create(1318, 23, 225.756989, 1240.000000, 1082.149902, world_id=2)
+            DynamicPickup.create(1318, 23, 2185.8176, -1814.6786, 13.5469, world_id=ServerWorldIDs.gangwar_world, interior_id=0),
+            DynamicPickup.create(1318, 23, 225.756989, 1240.000000, 1082.149902, world_id=ServerWorldIDs.gangwar_world_interior)
         ],
         [219.6040, 1241.9434, 1082.1406],
         2
@@ -242,14 +303,15 @@ gangs = { # ID: Gang inst
         {50: "Amigo", 100: "Macho", 150: "Junior", 200: "Ermanno", 250: "Bandido", 300: "Autoridad", 350: "Adjunto", 400: "Veterano", 450: "Vato Loco", 500: "Padre"},
         Colors.rifa,
         Colors.game_text_rifa,
+        Colors.rifa_hex,
         [],
-        DynamicCheckpoint.create(-71.8009, 1366.5933, 1080.2185, 1.0, world_id=2, interior_id=6, stream_distance=25.0),
+        61,
+        DynamicCheckpoint.create(-71.8009, 1366.5933, 1080.2185, 1.0, world_id=ServerWorldIDs.gangwar_world_interior, interior_id=6, stream_distance=25.0),
         [
-            DynamicPickup.create(1318, 23, 2787.0759, -1926.1780, 13.5469, world_id=0, interior_id=0),
-            DynamicPickup.create(1318, 23, -68.8279, 1351.3553, 1080.2109, world_id=2)
+            DynamicPickup.create(1318, 23, 2787.0759, -1926.1780, 13.5469, world_id=ServerWorldIDs.gangwar_world, interior_id=0),
+            DynamicPickup.create(1318, 23, -68.8279, 1351.3553, 1080.2109, world_id=ServerWorldIDs.gangwar_world_interior)
         ],
         [-59.1456, 1364.5851, 1080.2109],
         6
     )
-
 }
