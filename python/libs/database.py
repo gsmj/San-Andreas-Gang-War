@@ -15,7 +15,8 @@ from sqlalchemy import (
     values,
     Identity,
     Float,
-    and_
+    and_,
+    func,
 )
 from sqlalchemy.orm import (
     declarative_base,
@@ -41,16 +42,32 @@ class Player(Base):
     registration_ip = Column(String(32))
     last_ip = Column(String(32))
     registration_data = Column(DateTime(timezone=ZoneInfo("Europe/Moscow")))
+    score = Column(Integer(), default=1)
+    money = Column(Integer(), default=0)
     donate = Column(Integer(), default=0)
     kills = Column(Integer(), default=0)
     deaths = Column(Integer(), default=0)
     heals = Column(Integer(), default=0)
     masks = Column(Integer(), default=0)
     gang_id = Column(Integer())
-    vip = Column(Integer(), default=-1)
+    vip_level = Column(Integer(), default=-1)
+    vip_gangwar_template = Column(String(16), default="0, 0, 0")
     is_muted = Column(Boolean(), default=False)
     is_jailed = Column(Boolean(), default=False)
     is_banned = Column(Boolean(), default=False)
+    jail_time = Column(Integer, default=0)
+    mute_time = Column(Integer, default=0)
+
+class PlayerFreeroamGunSlots(Base):
+    __tablename__ = "PlayerFreeroamGunSlots"
+    uid = Column(Integer, Identity(), primary_key=True)
+    name = Column(String(32))
+    slot_melee = Column(Integer(), default=-1)
+    slot_pistol = Column(Integer(), default=-1)
+    slot_shotgun = Column(Integer(), default=-1)
+    slot_machine_gun = Column(Integer(), default=-1)
+    slot_assault_rifle = Column(Integer(), default=-1)
+    slot_long_rifle = Column(Integer(), default=-1)
 
 
 class GangZone(Base):
@@ -100,6 +117,15 @@ class VIPCodes(Base):
     is_activated = Column(Boolean(), default=False)
 
 
+class AdminLog(Base):
+    __tablename__ = "AdminLog"
+    uid = Column(Integer, Identity(), primary_key=True)
+    admin = Column(String(32))
+    action = Column(Integer)
+    target = Column(String(32))
+    reason = Column(String(252))
+
+
 class DataBase():
     @classmethod
     def create_metadata(cls):
@@ -121,6 +147,7 @@ class DataBase():
                     gang_id=player.gang_id,
                 )
             )
+            session.add(PlayerFreeroamGunSlots(name=player.get_name()))
             session.commit()
 
     @classmethod
@@ -130,9 +157,26 @@ class DataBase():
             return result.scalar()
 
     @classmethod
+    def get_player_freeroam_gun_slots(cls, player: "Player") -> "PlayerFreeroamGunSlots":
+        with cls.Session() as session:
+            result = session.execute(select(PlayerFreeroamGunSlots).where(PlayerFreeroamGunSlots.name == player.get_name()))
+            return result.scalar()
+
+    @classmethod
     def save_player(cls, player: "Player", **kwargs) -> None:
         with cls.Session() as session:
             result = session.execute(select(Player).where(Player.name == player.get_name()))
+            player_db = result.scalar()
+            for key, value in kwargs.items():
+                if hasattr(player_db, key):
+                    setattr(player_db, key, value)
+
+            session.commit()
+
+    @classmethod
+    def save_freeroam_gun_slots(cls, player: "Player", **kwargs) -> None:
+        with cls.Session() as session:
+            result = session.execute(select(PlayerFreeroamGunSlots).where(PlayerFreeroamGunSlots.name == player.get_name()))
             player_db = result.scalar()
             for key, value in kwargs.items():
                 if hasattr(player_db, key):
@@ -227,6 +271,12 @@ class DataBase():
             return result.scalars().all()
 
     @classmethod
+    def load_biggest_vehicle_id(cls) -> Vehicle:
+        with cls.Session() as session:
+            result = session.execute(select(func.max(Vehicle.id)))
+            return result.scalar()
+
+    @classmethod
     def create_code(cls, level: int):
         with cls.Session() as session:
             session.add(VIPCodes(level=level))
@@ -237,3 +287,4 @@ class DataBase():
         with cls.Session() as session:
             result = session.execute(select(VIPCodes).where(and_(VIPCodes.code == input_text, VIPCodes.is_activated == False)))
             return result.scalar()
+

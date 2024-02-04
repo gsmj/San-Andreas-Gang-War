@@ -20,19 +20,28 @@ from pysamp.timer import set_timer
 from pystreamer import register_callbacks
 from pystreamer.dynamiccp import DynamicCheckpoint
 from pystreamer.dynamicpickup import DynamicPickup
+from pydpc.driftcounter.callbacks import register as register_drift_callbacks
+from pydpc.driftcounter.drift import Drift
+from pydpc.driftcounter import *
 from .libs.gang import gangs, DefaultGangZones, GangZoneData
 from .libs.player import Player
 from .libs.vehicle import Vehicle
-from .libs.utils import Colors, ServerInfo
+from .libs.utils import *
 from .libs.database import DataBase
 from .libs.commands import *
 from .libs.textdraws import TextDraws
+from .libs.version import __version__
+import os
 import random
+encode()
 
 
 @on_gamemode_init
 def on_ready() -> None:
     register_callbacks()
+    register_drift_callbacks()
+    drift_set_global_check()
+    drift_set_update_delay(10)
     DataBase.create_metadata()
     DataBase.create_gangzones()
     print(f"Created: GangZone (gang)")
@@ -90,12 +99,9 @@ def on_ready() -> None:
                 add_siren=vehicle.add_siren).add_to_registry()
             veh.set_virtual_world(vehicle.virtual_world)
 
+    print(f"Loaded: {ServerInfo.name_short} (v{__version__})")
+    print("Created by: Ykpauneu & Rein.")
     set_timer(every_second, 1000, True)
-
-
-@on_gamemode_exit
-def on_exit() -> None:
-    print("EXITED")
 
 def every_second():
     change_name_cd = 15000
@@ -148,6 +154,7 @@ def on_player_death(player: Player, killer: Player, reason: int) -> None:
 @Player.using_registry
 def on_player_text(player: Player, text: str) -> None:
     player.on_text_handle(text)
+    return False
 
 @DynamicPickup.on_player_pick_up
 @Player.using_registry
@@ -185,3 +192,23 @@ def on_player_state_change(player: Player, new_state: int, old_state: int) -> No
 @Player.using_registry
 def on_player_click_textdraw(player: Player, clicked: TextDraw) -> None:
     player.on_click_textdraw_handle(clicked)
+
+@Player.on_click_map
+@Player.using_registry
+def on_player_click_map(player: Player, x: float, y: float, z: float) -> None:
+    player.on_click_map_handle(x, y, z)
+
+@Drift.on_start
+@Player.using_registry
+def on_player_start_drift(player: Player) -> None:
+    player.on_start_drift_handle()
+
+@Drift.on_update
+@Player.using_registry
+def on_player_drift_update(player: Player, value: int, combo: int, flag_id: int, distance: float, speed: float) -> None:
+    player.on_drift_update_handle(value, combo, flag_id, distance, speed)
+
+@Drift.on_end
+@Player.using_registry
+def on_player_end_drift(player: Player, value: int, combo: int, reason: int) -> None:
+    player.on_end_drift_handle(value, combo, reason)

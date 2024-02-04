@@ -37,15 +37,15 @@
     },
     "language": "Loading..",
     "logging": {
-        "enable": true,
-        "log_chat": true,
+        "enable": false,
+        "log_chat": false,
         "log_cookies": false,
-        "log_deaths": true,
+        "log_deaths": false,
         "log_queries": false,
         "log_sqlite": false,
         "log_sqlite_queries": false,
         "timestamp_format": "[%H:%M:%S]",
-        "use_prefix": true,
+        "use_prefix": false,
         "use_timestamp": true
     },
     "max_bots": 0,
@@ -76,7 +76,7 @@
     },
     "password": "",
     "pawn": {
-        "legacy_plugins": ["streamer", "PySAMP"],
+        "legacy_plugins": ["streamer", "PySAMP", "DriftPointsCounter"],
         "main_scripts": [
             "empty"
         ]
@@ -88,6 +88,8 @@
     },
     "sleep": 5.0,
     "use_dyn_ticks": true,
-    "website": "open.mp",
-    "discord": "https://discord.gg/tQrwreUz"
+    "website": "sanandreasonline.github.io/",
+    "discord": {
+        "invite": "https://discord.gg/JgM97qPxFT"
+    }
 }
