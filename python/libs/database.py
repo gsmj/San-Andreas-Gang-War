@@ -237,4 +237,3 @@ class DataBase():
         with cls.Session() as session:
             result = session.execute(select(VIPCodes).where(and_(VIPCodes.code == input_text, VIPCodes.is_activated == False)))
             return result.scalar()
-
