@@ -42,8 +42,8 @@ class Player(Base):
     registration_ip = Column(String(32))
     last_ip = Column(String(32))
     registration_data = Column(DateTime(timezone=ZoneInfo("Europe/Moscow")))
-    score = Column(Integer(), default=1)
-    money = Column(Integer(), default=0)
+    score = Column(Integer(), default=0)
+    money = Column(Integer(), default=100000)
     donate = Column(Integer(), default=0)
     kills = Column(Integer(), default=0)
     deaths = Column(Integer(), default=0)
@@ -51,12 +51,14 @@ class Player(Base):
     masks = Column(Integer(), default=0)
     gang_id = Column(Integer())
     vip_level = Column(Integer(), default=-1)
+    admin_level = Column(Integer(), default=0)
     vip_gangwar_template = Column(String(16), default="0, 0, 0")
     is_muted = Column(Boolean(), default=False)
     is_jailed = Column(Boolean(), default=False)
     is_banned = Column(Boolean(), default=False)
     jail_time = Column(Integer, default=0)
     mute_time = Column(Integer, default=0)
+
 
 class PlayerFreeroamGunSlots(Base):
     __tablename__ = "PlayerFreeroamGunSlots"
@@ -68,6 +70,14 @@ class PlayerFreeroamGunSlots(Base):
     slot_machine_gun = Column(Integer(), default=-1)
     slot_assault_rifle = Column(Integer(), default=-1)
     slot_long_rifle = Column(Integer(), default=-1)
+
+
+class PlayerSettings(Base):
+    __tablename__ = "PlayerSettings"
+    uid = Column(Integer, Identity(), primary_key=True)
+    name = Column(String(32))
+    disabled_ping_td = Column(Boolean(), default=False)
+    disabled_global_chat_gw = Column(Boolean(), default=False)
 
 
 class GangZone(Base):
@@ -109,14 +119,6 @@ class Vehicle(Base):
     add_siren = Column(Boolean(), default=False)
 
 
-class VIPCodes(Base):
-    __tablename__ = "VIPCodes"
-    uid = Column(Integer, Identity(), primary_key=True)
-    code = Column(String(64), default=secrets.token_urlsafe(16))
-    level = Column(Integer())
-    is_activated = Column(Boolean(), default=False)
-
-
 class AdminLog(Base):
     __tablename__ = "AdminLog"
     uid = Column(Integer, Identity(), primary_key=True)
@@ -129,7 +131,7 @@ class AdminLog(Base):
 class DataBase():
     @classmethod
     def create_metadata(cls):
-        engine = create_engine("sqlite:///python\sqlite3.db")
+        engine = create_engine("sqlite:///sqlite3.db")
         Base.metadata.create_all(engine)
         cls.Session = sessionmaker(bind=engine)
 
@@ -148,6 +150,7 @@ class DataBase():
                 )
             )
             session.add(PlayerFreeroamGunSlots(name=player.get_name()))
+            session.add(PlayerSettings(name=player.get_name()))
             session.commit()
 
     @classmethod
@@ -157,9 +160,21 @@ class DataBase():
             return result.scalar()
 
     @classmethod
+    def get_player_name(cls, name: str) -> "Player":
+        with cls.Session() as session:
+            result = session.execute(select(Player).where(Player.name == name))
+            return result.scalar()
+
+    @classmethod
     def get_player_freeroam_gun_slots(cls, player: "Player") -> "PlayerFreeroamGunSlots":
         with cls.Session() as session:
             result = session.execute(select(PlayerFreeroamGunSlots).where(PlayerFreeroamGunSlots.name == player.get_name()))
+            return result.scalar()
+
+    @classmethod
+    def get_player_settings(cls, player: "Player") -> "PlayerSettings":
+        with cls.Session() as session:
+            result = session.execute(select(PlayerSettings).where(PlayerSettings.name == player.get_name()))
             return result.scalar()
 
     @classmethod
@@ -174,9 +189,31 @@ class DataBase():
             session.commit()
 
     @classmethod
+    def save_player_name(cls, name: str, **kwargs) -> None:
+        with cls.Session() as session:
+            result = session.execute(select(Player).where(Player.name == name))
+            player_db = result.scalar()
+            for key, value in kwargs.items():
+                if hasattr(player_db, key):
+                    setattr(player_db, key, value)
+
+            session.commit()
+
+    @classmethod
     def save_freeroam_gun_slots(cls, player: "Player", **kwargs) -> None:
         with cls.Session() as session:
             result = session.execute(select(PlayerFreeroamGunSlots).where(PlayerFreeroamGunSlots.name == player.get_name()))
+            player_db = result.scalar()
+            for key, value in kwargs.items():
+                if hasattr(player_db, key):
+                    setattr(player_db, key, value)
+
+            session.commit()
+
+    @classmethod
+    def save_player_settings(cls, player: "Player", **kwargs) -> None:
+        with cls.Session() as session:
+            result = session.execute(select(PlayerSettings).where(PlayerSettings.name == player.get_name()))
             player_db = result.scalar()
             for key, value in kwargs.items():
                 if hasattr(player_db, key):
@@ -267,24 +304,11 @@ class DataBase():
     @classmethod
     def load_vehicles_order_by(cls) -> Vehicle:
         with cls.Session() as session:
-            result = session.execute(select(Vehicle).order_by(Vehicle.id))
+            result = session.execute(select(Vehicle).order_by(Vehicle.uid))
             return result.scalars().all()
 
-    @classmethod
-    def load_biggest_vehicle_id(cls) -> Vehicle:
-        with cls.Session() as session:
-            result = session.execute(select(func.max(Vehicle.id)))
-            return result.scalar()
-
-    @classmethod
-    def create_code(cls, level: int):
-        with cls.Session() as session:
-            session.add(VIPCodes(level=level))
-            session.commit()
-
-    @classmethod
-    def get_code(cls, input_text: str):
-        with cls.Session() as session:
-            result = session.execute(select(VIPCodes).where(and_(VIPCodes.code == input_text, VIPCodes.is_activated == False)))
-            return result.scalar()
-
+    # @classmethod
+    # def load_biggest_vehicle_id(cls) -> Vehicle:
+    #     with cls.Session() as session:
+    #         result = session.execute(select(func.max(Vehicle.id)))
+    #         return result.scalar()

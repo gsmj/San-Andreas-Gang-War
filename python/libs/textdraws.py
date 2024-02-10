@@ -6,6 +6,9 @@ class TextDraws:
     logo = {}
     capture_td = {}
     class_selection_td = {}
+    commands_bottom = {}
+    commands_bottom_gw = {}
+    fps_and_ping = {}
     @classmethod
     def load(cls) -> None:
         cls.logo[0] = TextDraw.create(556.000000, 8.088897, "S")
@@ -37,7 +40,7 @@ class TextDraws:
         cls.logo[2].set_outline(0)
         cls.logo[2].font(4)
 
-        cls.capture_td[0] = TextDraw.create(5.333312, 275.851837, "Time: ")
+        cls.capture_td[0] = TextDraw.create(5.000000, 275.000000, "Time: ")
         cls.capture_td[0].letter_size(0.323332, 1.346961)
         cls.capture_td[0].alignment(1)
         cls.capture_td[0].color(-1)
@@ -47,7 +50,7 @@ class TextDraws:
         cls.capture_td[0].font(1)
         cls.capture_td[0].set_proportional(True)
 
-        cls.capture_td[1] = TextDraw.create(4.666645, 287.637084, "Varios Los Aztecas  ~r~0")
+        cls.capture_td[1] = TextDraw.create(5.000000, 290.000000, "Varios Los Aztecas  ~r~0")
         cls.capture_td[1].letter_size(0.315997, 1.226662)
         cls.capture_td[1].alignment(1)
         cls.capture_td[1].color(-1)
@@ -57,7 +60,7 @@ class TextDraws:
         cls.capture_td[1].font(1)
         cls.capture_td[1].set_proportional(True)
 
-        cls.capture_td[2] = TextDraw.create(5.333312, 298.592864, "Los Santos Vagos  ~r~1")
+        cls.capture_td[2] = TextDraw.create(5.000000, 300.000000, "Los Santos Vagos  ~r~1")
         cls.capture_td[2].letter_size(0.315997, 1.226662)
         cls.capture_td[2].alignment(1)
         cls.capture_td[2].color(-1)
@@ -112,4 +115,55 @@ class TextDraws:
         cls.class_selection_td[2].box_color(50)
         cls.class_selection_td[2].set_proportional(True)
         cls.class_selection_td[2].set_selectable(True)
+
+        cls.commands_bottom[0] = TextDraw.create(10.000000, 435.000000, "/m - Menu")
+        cls.commands_bottom[1] = TextDraw.create(70.000000, 435.000000, "/w - Weapons")
+        cls.commands_bottom[2] = TextDraw.create(150.000000, 435.000000, "/v - Vehicles")
+        cls.commands_bottom[3] = TextDraw.create(230.000000, 435.000000, "/sm - Set mode")
+        for td in cls.commands_bottom.values():
+            td.font(2)
+            td.letter_size(0.250000, 1.000000)
+            td.text_size(400.000000, 17.000000)
+            td.set_outline(1)
+            td.set_shadow(0)
+            td.alignment(1)
+            td.color(-1)
+            td.background_color(255)
+            td.box_color(50)
+            td.use_box(False)
+            td.set_proportional(True)
+            td.set_selectable(False)
+
+        cls.commands_bottom_gw[0] = TextDraw.create(10.000000, 435.000000, "/m - Menu")
+        cls.commands_bottom_gw[1] = TextDraw.create(70.000000, 435.000000, "/c - Capture")
+        cls.commands_bottom_gw[2] = TextDraw.create(150.000000, 435.000000, "/g - New gang")
+        cls.commands_bottom_gw[3] = TextDraw.create(230.000000, 435.000000, "/sm - Set mode")
+        for td in cls.commands_bottom_gw.values():
+            td.font(2)
+            td.letter_size(0.250000, 1.000000)
+            td.text_size(400.000000, 17.000000)
+            td.set_outline(1)
+            td.set_shadow(0)
+            td.alignment(1)
+            td.color(-1)
+            td.background_color(255)
+            td.box_color(50)
+            td.use_box(False)
+            td.set_proportional(True)
+            td.set_selectable(False)
+
+        cls.fps_and_ping[0] = TextDraw.create(610.000000, 100.000000, " ")
+        cls.fps_and_ping[0].font(2)
+        cls.fps_and_ping[0].letter_size(0.250000, 1.500000)
+        cls.fps_and_ping[0].text_size(400.000000, 17.000000)
+        cls.fps_and_ping[0].set_outline(1)
+        cls.fps_and_ping[0].set_shadow(0)
+        cls.fps_and_ping[0].alignment(3)
+        cls.fps_and_ping[0].color(-1)
+        cls.fps_and_ping[0].background_color(255)
+        cls.fps_and_ping[0].box_color(50)
+        cls.fps_and_ping[0].use_box(False)
+        cls.fps_and_ping[0].set_proportional(True)
+        cls.fps_and_ping[0].set_selectable(False)
+
         return print(f"Created: TextDraw (server)")

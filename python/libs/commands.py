@@ -1,5 +1,5 @@
 from pysamp.commands import cmd
-from pysamp import send_client_message_to_all
+from pysamp import send_client_message_to_all, set_world_time, create_vehicle
 from pysamp.dialog import Dialog
 from pysamp.timer import set_timer, kill_timer
 from .player import Player, Dialogs
@@ -11,7 +11,10 @@ from .utils import (
     WeatherIDs,
     convert_seconds,
     VIPData,
-    ServerInfo)
+    ServerInfo,
+    GunData
+)
+from .consts import TIMER_ID_NONE, ID_NONE
 from .database import DataBase
 from datetime import datetime as dt
 from zoneinfo import ZoneInfo
@@ -19,10 +22,10 @@ import random
 from .vehicle import Vehicle
 from samp import SPECIAL_ACTION_USEJETPACK, PLAYER_STATE_SPECTATING # type: ignore
 
-@cmd
+@cmd(aliases=("menu", "mm", "help", "m"))
 @Player.using_registry
 def mn(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -31,7 +34,7 @@ def mn(player: Player):
 @cmd
 @Player.using_registry
 def stats(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -40,7 +43,7 @@ def stats(player: Player):
 @cmd
 @Player.using_registry
 def healme(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -64,14 +67,14 @@ def healme(player: Player):
 @cmd
 @Player.using_registry
 def mask(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
     if not player.check_player_mode([ServerWorldIDs.gangwar_world]):
         return
 
-    if player.is_wearing_mask:
+    if player.is_data.wearing_mask:
         return player.send_error_message("Ваше местоположение уже скрыто!")
 
     if player.masks == 0:
@@ -82,7 +85,7 @@ def mask(player: Player):
 
     player.apply_animation("SHOP", "ROB_Shifty", 4.1, False, False, False, False, 0)
     player.masks -= 1
-    player.is_wearing_mask = True
+    player.is_data.wearing_mask = True
     player.set_attached_object(2, 19801, 2, offset_x=0.067, offset_y=0.026, offset_z=0.001000, rotation_x=0.30, rotation_y=85.600000, rotation_z=175.400000, scale_x=1.321000, scale_y=1.32700, scale_z=1.257000)
     player.set_color(Colors.mask)
     player.set_chat_bubble("Надевает маску..", Colors.white, 20.0, 5000)
@@ -91,27 +94,27 @@ def mask(player: Player):
 @cmd
 @Player.using_registry
 def maskoff(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
     if not player.check_player_mode([ServerWorldIDs.gangwar_world]):
         return
 
-    if not player.is_wearing_mask:
+    if not player.is_data.wearing_mask:
         return player.send_error_message("У Вас нет маски!")
 
     if player.is_attached_object_slot_used(2):
         player.remove_attached_object(2)
 
-    player.is_wearing_mask = False
+    player.is_data.wearing_mask = False
     player.set_color(player.gang.color)
     return player.send_notification_message("Вы сняли маску.")
 
-@cmd
+@cmd(aliases=("changegang", "g"))
 @Player.using_registry
 def newgang(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -121,8 +124,8 @@ def newgang(player: Player):
     if player.gang.is_capturing:
         return player.send_error_message("Вы не можете сменить банду сейчас!")
 
-    if player.is_wearing_mask:
-        player.is_wearing_mask = False
+    if player.is_data.wearing_mask:
+        player.is_data.wearing_mask = False
         player.set_color(player.gang.color)
 
     if player.is_attached_object_slot_used(2):
@@ -131,13 +134,12 @@ def newgang(player: Player):
     player.heals = 0
     player.masks = 0
     player.reset_weapons()
-    player.reset_money()
     return Dialogs.show_command_gang_choice_dialog(player)
 
 @cmd
 @Player.using_registry
 def randomskin(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -156,7 +158,7 @@ def randomskin(player: Player):
 @cmd
 @Player.using_registry
 def changeskin(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -186,14 +188,14 @@ def time(player: Player):
 @cmd
 @Player.using_registry
 def f(player: Player, *message: str):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
     if not player.check_player_mode([ServerWorldIDs.gangwar_world]):
         return
 
-    if player.is_muted:
+    if player.is_data.muted:
         return player.send_error_message("Доступ в чат ограничен!")
 
     message = " ".join(message)
@@ -210,11 +212,11 @@ def f(player: Player, *message: str):
 @cmd
 @Player.using_registry
 def o(player: Player, *message: str):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if player.is_muted:
+    if player.is_data.muted:
         return player.send_error_message("Доступ в чат ограничен!")
 
     message = " ".join(message)
@@ -226,7 +228,7 @@ def o(player: Player, *message: str):
 @cmd
 @Player.using_registry
 def vipinfo(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -238,7 +240,7 @@ def vipinfo(player: Player):
         "Информация о VIP статусах",
         (
             f"{{{Colors.bronze_hex}}}BRONZE VIP{{{Colors.dialog_hex}}}:\n"
-            f"{{{Colors.cmd_hex}}}/v\t\t{{{Colors.dialog_hex}}}VIP чат\n"
+            f"{{{Colors.cmd_hex}}}/vc\t\t{{{Colors.dialog_hex}}}VIP чат\n"
             f"{{{Colors.cmd_hex}}}/rclist\t\t{{{Colors.dialog_hex}}}Переливающийся цвет игрока\n"
             f"{{{Colors.cmd_hex}}}/jp\t\t{{{Colors.dialog_hex}}}Покупка джетпака\n"
             "Сохранения оружия в режиме GangWar\n\n"
@@ -254,15 +256,15 @@ def vipinfo(player: Player):
 
 @cmd
 @Player.using_registry
-def v(player: Player, *message: str):
-    player.kick_if_not_logged()
+def vc(player: Player, *message: str):
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
     if player.vip.level == -1:
         return player.send_error_message("У Вас нет VIP статуса!")
 
-    if player.is_muted:
+    if player.is_data.muted:
         return player.send_error_message("Доступ в чат ограничен!")
 
     message = " ".join(message)
@@ -279,7 +281,7 @@ def v(player: Player, *message: str):
 @cmd
 @Player.using_registry
 def vbuy(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -295,7 +297,7 @@ def vbuy(player: Player):
 @cmd
 @Player.using_registry
 def rclist(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -322,7 +324,7 @@ def rclist(player: Player):
 @cmd
 @Player.using_registry
 def jp(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -342,7 +344,7 @@ def jp(player: Player):
 @cmd
 @Player.using_registry
 def members(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -364,7 +366,7 @@ def members(player: Player):
 @cmd
 @Player.using_registry
 def gangzones(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -377,7 +379,7 @@ def gangzones(player: Player):
 @cmd
 @Player.using_registry
 def commands(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -386,7 +388,7 @@ def commands(player: Player):
 @cmd
 @Player.using_registry
 def setweather(player: Player, weather_id: int):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -396,10 +398,10 @@ def setweather(player: Player, weather_id: int):
     player.set_weather(int(weather_id))
     return player.send_notification_message(f"Погода была изменена на {weather_id} ID.")
 
-@cmd
+@cmd(aliases=("capt", "c"))
 @Player.using_registry
 def capture(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -435,7 +437,7 @@ def capture(player: Player):
 @cmd
 @Player.using_registry
 def gps(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -444,16 +446,16 @@ def gps(player: Player):
 @cmd
 @Player.using_registry
 def credits(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
     return Dialogs.show_credits_dialog(player)
 
-@cmd
+@cmd(aliases=("changemode", "sm"))
 @Player.using_registry
 def setmode(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -465,7 +467,7 @@ def setmode(player: Player):
 @cmd
 @Player.using_registry
 def lock(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -492,7 +494,7 @@ def sms(player: Player, player_id: int, *message: str):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if player.is_muted:
+    if player.is_data.muted:
         return player.send_error_message("Доступ в чат ограничен!")
 
     message = " ".join(message)
@@ -506,8 +508,11 @@ def sms(player: Player, player_id: int, *message: str):
         return player.send_error_message("Игрок не найден!")
 
     target = Player.from_registry_native(target_id)
-    player.send_client_message(Colors.sms, f"[SMS] {message}. Получатель: {player.get_name()}.")
-    return target.send_client_message(Colors.sms, f"[SMS] {message}. Отправитель: {player.get_name()}.")
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+
+    player.send_client_message(Colors.sms, f"[SMS] {message}. Получатель: {target.get_name()}({target.id}).")
+    return target.send_client_message(Colors.sms, f"[SMS] {message}. Отправитель: {player.get_name()}({player.id}).")
 
 @cmd
 @Player.using_registry
@@ -544,10 +549,10 @@ def report(player: Player):
 
     return Dialogs.show_admin_ask_dialog(player)
 
-@cmd
+@cmd(aliases=("guns", "weapon", "w"))
 @Player.using_registry
 def weapons(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -559,7 +564,7 @@ def weapons(player: Player):
 @cmd
 @Player.using_registry
 def ahelp(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -571,6 +576,7 @@ def ahelp(player: Player):
         "Список команд для администрации",
         (
             "Команда\tУровень\tОписание\n"
+            f"{{{Colors.cmd_hex}}}/spawn\t{{{Colors.red_hex}}}1\t{{{Colors.dialog_hex}}}Заспавнить себя/игрока\n"
             f"{{{Colors.cmd_hex}}}/ahelp\t{{{Colors.red_hex}}}1\t{{{Colors.dialog_hex}}}Список команд для администрации\n"
             f"{{{Colors.cmd_hex}}}/pm\t{{{Colors.red_hex}}}1\t{{{Colors.dialog_hex}}}Ответ на /report\n"
             f"{{{Colors.cmd_hex}}}/admins\t{{{Colors.red_hex}}}1\t{{{Colors.dialog_hex}}}Список администраторов в сети\n"
@@ -578,8 +584,28 @@ def ahelp(player: Player):
             f"{{{Colors.cmd_hex}}}/aad\t{{{Colors.red_hex}}}1\t{{{Colors.dialog_hex}}}Сообщение от имени администратора\n"
             f"{{{Colors.cmd_hex}}}/spec\t{{{Colors.red_hex}}}2\t{{{Colors.dialog_hex}}}Слежка за игроком\n"
             f"{{{Colors.cmd_hex}}}/specoff\t{{{Colors.red_hex}}}2\t{{{Colors.dialog_hex}}}Отключение слежки за игроком\n"
-
-
+            f"{{{Colors.cmd_hex}}}/jail\t{{{Colors.red_hex}}}2\t{{{Colors.dialog_hex}}}Посадить игрока в деморган\n"
+            f"{{{Colors.cmd_hex}}}/unjail\t{{{Colors.red_hex}}}2\t{{{Colors.dialog_hex}}}Выпустить игрока из деморгана\n"
+            f"{{{Colors.cmd_hex}}}/mute\t{{{Colors.red_hex}}}2\t{{{Colors.dialog_hex}}}Выдача мута игроку\n"
+            f"{{{Colors.cmd_hex}}}/unmute\t{{{Colors.red_hex}}}2\t{{{Colors.dialog_hex}}}Снятие мута с игрока\n"
+            f"{{{Colors.cmd_hex}}}/hp\t{{{Colors.red_hex}}}2\t{{{Colors.dialog_hex}}}Восстановление HP до 100\n"
+            f"{{{Colors.cmd_hex}}}/goto\t{{{Colors.red_hex}}}2\t{{{Colors.dialog_hex}}}Перемещение к игроку\n"
+            f"{{{Colors.cmd_hex}}}/gethere\t{{{Colors.red_hex}}}2\t{{{Colors.dialog_hex}}}Перемещение игрока к себе\n"
+            f"{{{Colors.cmd_hex}}}/slap\t{{{Colors.red_hex}}}3\t{{{Colors.dialog_hex}}}Подбросить игрока\n"
+            f"{{{Colors.cmd_hex}}}/freeze\t{{{Colors.red_hex}}}3\t{{{Colors.dialog_hex}}}Заморозить игрока\n"
+            f"{{{Colors.cmd_hex}}}/unfreeze\t{{{Colors.red_hex}}}3\t{{{Colors.dialog_hex}}}Разморозить игрока\n"
+            f"{{{Colors.cmd_hex}}}/ban\t{{{Colors.red_hex}}}3\t{{{Colors.dialog_hex}}}Забанить игрока\n"
+            f"{{{Colors.cmd_hex}}}/unban\t{{{Colors.red_hex}}}3\t{{{Colors.dialog_hex}}}Разбанить игрока\n"
+            f"{{{Colors.cmd_hex}}}/settime\t{{{Colors.red_hex}}}4\t{{{Colors.dialog_hex}}}Изменение времени\n"
+            f"{{{Colors.cmd_hex}}}/getip\t{{{Colors.red_hex}}}4\t{{{Colors.dialog_hex}}}Получение IP-адреса игрока\n"
+            f"{{{Colors.cmd_hex}}}/givegun\t{{{Colors.red_hex}}}4\t{{{Colors.dialog_hex}}}Выдача оружия игроку\n"
+            f"{{{Colors.cmd_hex}}}/sethp\t{{{Colors.red_hex}}}4\t{{{Colors.dialog_hex}}}Изменение HP игрока\n"
+            f"{{{Colors.cmd_hex}}}/amusic\t{{{Colors.red_hex}}}5\t{{{Colors.dialog_hex}}}Включение аудио для игрока\n"
+            f"{{{Colors.cmd_hex}}}/stopamusic\t{{{Colors.red_hex}}}5\t{{{Colors.dialog_hex}}}Отключение аудио для игрока\n"
+            f"{{{Colors.cmd_hex}}}/deleteplayer\t{{{Colors.red_hex}}}6\t{{{Colors.dialog_hex}}}Удаление аккаунта\n"
+            f"{{{Colors.cmd_hex}}}/setvip\t{{{Colors.red_hex}}}6\t{{{Colors.dialog_hex}}}Изменение VIP статуса для игрока\n"
+            f"{{{Colors.cmd_hex}}}/setgangzone\t{{{Colors.red_hex}}}6\t{{{Colors.dialog_hex}}}Изменение владельца территории\n"
+            f"{{{Colors.cmd_hex}}}/spawnveh\t{{{Colors.red_hex}}}6\t{{{Colors.dialog_hex}}}Спавн транспорта\n"
         ),
         "Закрыть",
         ""
@@ -587,8 +613,32 @@ def ahelp(player: Player):
 
 @cmd
 @Player.using_registry
+def spawn(player: Player, player_id: int = None):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(1):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    if not player_id:
+        return player.spawn()
+
+    try:
+        target_id = int(player_id)
+
+    except:
+        return player.send_error_message("Игрок не найден!")
+
+    target = Player.from_registry_native(target_id)
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+    return target.spawn()
+
+@cmd
+@Player.using_registry
 def pm(player: Player, player_id: int, *message: str):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -606,12 +656,16 @@ def pm(player: Player, player_id: int, *message: str):
         return player.send_error_message("Использование команды: /pm player_id message")
 
     target = Player.from_registry_native(target_id)
-    return target.send_client_message(Colors.admin_pm, f"[REPORT] Ответ от {player.name}({player.id}): {message}.")
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+
+    target.send_client_message(Colors.admin_pm, f"[REPORT] Ответ от {player.name}({player.id}): {message}.")
+    return player.send_client_message(Colors.admin_pm, f"[REPORT] Ваш ответ: {message}.")
 
 @cmd
 @Player.using_registry
 def admins(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -628,7 +682,7 @@ def admins(player: Player):
 @cmd
 @Player.using_registry
 def getstats(player: Player, player_id: int):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -646,7 +700,7 @@ def getstats(player: Player, player_id: int):
 @cmd
 @Player.using_registry
 def aad(player: Player, *message: str):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -662,7 +716,7 @@ def aad(player: Player, *message: str):
 @cmd
 @Player.using_registry
 def spec(player: Player, player_id: int):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -675,10 +729,13 @@ def spec(player: Player, player_id: int):
     except:
         return player.send_error_message("Игрок не найден!")
 
-    if player.id == player_id:
+    if player.id == target_id:
         return player.send_error_message("Вы не можете наблюдать за собой!")
 
     target = Player.from_registry_native(target_id)
+    if not target:
+        return player.send_error_message("Игрок не найден")
+
     if not target.is_connected():
         return player.send_error_message("Игрок ещё не подключился!")
 
@@ -700,7 +757,7 @@ def spec(player: Player, player_id: int):
 @cmd
 @Player.using_registry
 def specoff(player: Player):
-    player.kick_if_not_logged()
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -715,8 +772,8 @@ def specoff(player: Player):
 
 @cmd
 @Player.using_registry
-def jail(player: Player, player_id: int, time: int, *reason: str):
-    player.kick_if_not_logged()
+def jail(player: Player, player_id: int, minutes: int, *reason: str):
+    player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
@@ -730,77 +787,844 @@ def jail(player: Player, player_id: int, time: int, *reason: str):
         return player.send_error_message("Игрок не найден!")
 
     try:
-        target_time = int(time)
+        target_time = int(minutes)
 
     except:
         return player.send_error_message("Укажите время в минутах!")
 
     reason = " ".join(reason)
     if len(reason) == 0:
-        return player.send_error_message("Использование команды: /jail player_id time reason")
+        return player.send_error_message("Использование команды: /jail player_id minutes [reason]")
 
-    if target.is_jailed:
-        player.send_error_message("Игрок уже в деморгане!")
+    if player.id == target_id:
+        return player.send_error_message("Вы не можете указать себя!")
 
     target = Player.from_registry_native(target_id)
-    target.is_jailed = True
-    target.jail_time = target_time
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+
+    if target.is_data.jailed:
+        player.send_error_message("Игрок уже в деморгане!")
+
+    target.is_data.jailed = True
+    target.time.jail = target_time
     target.set_mode(ServerWorldIDs.jail_world)
     target.enable_jail_mode()
-    return send_client_message_to_all(Colors.admin, f"Администратор {player.name}({player.id}) посадил {target.name} в деморган на {time} минут. Причина: {reason}")
-
+    return send_client_message_to_all(Colors.admin, f"Администратор {player.name}({player.id}) посадил игрока {target.name}({target.id}) в деморган на {minutes} минут. Причина: {reason}.")
 
 @cmd
 @Player.using_registry
-def dbg(player: Player):
-    string = f"""\n\n\n\n\n\n\n\n\n
-    -------------------------
-    ## Python ##
-    Name: {player.name}
-    Password: {player.password}
-    Email: {player.email}
-    Pin: {player.pin}
-    Reg ip: {player.registration_ip}
-    Lasrip: {player.last_ip}
-    Reg data: {player.registration_data}
-    Score: {player.score}
-    Money: {player.money}
-    Donate: {player.donate}
-    Kills: {player.kills}
-    Deaths: {player.deaths}
-    Heals: {player.heals}
-    Masks: {player.masks}
-    Skin: {player.skin}
-    Color: {player.color}
-    Gang id: {player.gang_id}
-    Gang: {player.gang}
-    Mode: {player.mode}
-    Muted: {player.is_muted}
-    jailed: {player.is_jailed}
-    Logged: {player.is_logged}
-    Banned: {player.is_banned}
-    Mask: {player.is_wearing_mask}
-    CD time: {player.cooldown_time}
-    Jail time: {player.jail_time}
-    Jail timer: {player.jail_timer_id}
-    Mute time: {player.mute_time}
-    Mute timer: {player.mute_timer_id}
-    Last veh: {player.last_vehicle_id}
-    Veh speed: {player.vehicle_speedometer}
-    Drift counter: {player.drift_counter}
-    Drift: {player.drift}
-    VIP: {player.vip}
-    Slots: {player.gun_slots}
-    Admin: {player.admin}
-    -------------------------
-    ## SA:MP ##
-    Virtual world: {player.get_virtual_world()}
-    Interior id: {player.get_interior()}
-    Self mode == virtual world: {player.mode == player.get_virtual_world()}
-    """
-    print(string)
-    return player.send_notification_message("True")
+def unjail(player: Player, player_id: int):
+    player.kick_if_not_logged()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
 
+    if not player.admin.check_command_access(2):
+        return player.send_error_message("Вам недоступна эта команда!")
 
-# TODO:
-# Доделать сохранение и загрузку оружия для випов на гв режиме
+    try:
+        target_id = int(player_id)
+
+    except:
+        return player.send_error_message("Игрок не найден!")
+
+    if player.id == target_id:
+        return player.send_error_message("Вы не можете указать себя!")
+
+    target = Player.from_registry_native(target_id)
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+
+    if not target.is_data.jailed:
+        player.send_error_message("Игрок не в деморгане!")
+
+    target.send_notification_message(f"Администратор {{{Colors.cmd_hex}}}{player.name}({player.id}){{{Colors.white_hex}}} выпустил Вас выпустили из деморгана.")
+    kill_timer(target.timers.jail_id)
+    target.is_data.jailed = False
+    target.time.jail = 0
+    target.timers.jail_id = TIMER_ID_NONE
+    target.set_mode(ServerWorldIDs.freeroam_world)
+    target.enable_freeroam_selector()
+    return send_client_message_to_all(Colors.admin, f"Администратор {player.name}({player.id}) выпустил игрока {target.name}({target.id}) из деморгана.")
+
+@cmd
+@Player.using_registry
+def mute(player: Player, player_id: int, minutes: int, *reason: str):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(2):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    try:
+        target_id = int(player_id)
+
+    except:
+        return player.send_error_message("Игрок не найден!")
+
+    try:
+        target_time = int(minutes)
+
+    except:
+        return player.send_error_message("Укажите время в минутах!")
+
+    reason = " ".join(reason)
+    if len(reason) == 0:
+        return player.send_error_message("Использование команды: /mute player_id minutes [reason]")
+
+    if player.id == target_id:
+        return player.send_error_message("Вы не можете указать себя!")
+
+    target = Player.from_registry_native(target_id)
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+
+    if target.is_data.muted:
+        player.send_error_message("Игрок уже в муте!")
+
+    target.is_data.muted = True
+    target.time.mute = target_time
+    target.timers.mute_id = set_timer(target.mute_timer, target_time * 60000, False)
+    return send_client_message_to_all(Colors.admin, f"Администратор {player.name}({player.id}) выдал мут игроку {target.name}({target.id}) на {minutes} минут. Причина: {reason}.")
+
+@cmd
+@Player.using_registry
+def unmute(player: Player, player_id: int):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(2):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    try:
+        target_id = int(player_id)
+
+    except:
+        return player.send_error_message("Игрок не найден!")
+
+    if player.id == target_id:
+        return player.send_error_message("Вы не можете указать себя!")
+
+    target = Player.from_registry_native(target_id)
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+
+    if not target.is_data.muted:
+        player.send_error_message("Игрок не в муте!")
+
+    target.send_notification_message(f"Администратор {{{Colors.cmd_hex}}}{player.name}({player.id}){{{Colors.white_hex}}} снял с Вас мут.")
+    kill_timer(target.timers.mute_id)
+    target.is_data.muted = False
+    target.time.mute = 0
+    target.timers.mute_id = TIMER_ID_NONE
+    return send_client_message_to_all(Colors.admin, f"Администратор {player.name}({player.id}) снял мут с игрока {target.name}({target.id}).")
+
+@cmd
+@Player.using_registry
+def hp(player: Player):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(2):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    player.set_health(100.0)
+    return player.send_notification_message(f"Значение HP восстановлено до {{{Colors.cmd_hex}}}100{{{Colors.white_hex}}}.")
+
+@cmd
+@Player.using_registry
+def goto(player: Player, player_id: int):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(2):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    try:
+        target_id = int(player_id)
+
+    except:
+        return player.send_error_message("Игрок не найден!")
+
+    if player.id == target_id:
+        return player.send_error_message("Вы не можете указать себя!")
+
+    target = Player.from_registry_native(target_id)
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+
+    x, y, z = target.get_pos()
+    player.set_pos(x, y, z+5.0)
+    player.set_interior(target.get_interior())
+    player.set_virtual_world(target.mode)
+    return player.send_notification_message(f"Вы были перемещены к игроку {{{Colors.cmd_hex}}}{target.name}({target.id}){{{Colors.white_hex}}}.")
+
+@cmd
+@Player.using_registry
+def gethere(player: Player, player_id: int):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(2):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    try:
+        target_id = int(player_id)
+
+    except:
+        return player.send_error_message("Игрок не найден!")
+
+    if player.id == target_id:
+        return player.send_error_message("Вы не можете указать себя!")
+
+    x, y, z = player.get_pos()
+    target = Player.from_registry_native(target_id)
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+
+    target.set_pos(x, y, z+5.0)
+    target.set_interior(player.get_interior())
+    target.set_virtual_world(player.mode)
+    return player.send_notification_message(f"Вы переместили игрока {{{Colors.cmd_hex}}}{target.name}({target.id}){{{Colors.white_hex}}}.")
+
+@cmd
+@Player.using_registry
+def slap(player: Player, player_id: int):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(3):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    try:
+        target_id = int(player_id)
+
+    except:
+        return player.send_error_message("Игрок не найден!")
+
+    if player.id == target_id:
+        return player.send_error_message("Вы не можете указать себя!")
+
+    target = Player.from_registry_native(target_id)
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+
+    x, y, z = target.get_pos()
+    target.set_pos(x, y, z+5.0)
+    return player.send_notification_message(f"Вы подбросили игрока {{{Colors.cmd_hex}}}{target.name}({target.id}){{{Colors.white_hex}}}.")
+
+@cmd
+@Player.using_registry
+def freeze(player: Player, player_id: int):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(3):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    try:
+        target_id = int(player_id)
+
+    except:
+        return player.send_error_message("Игрок не найден!")
+
+    if player.id == target_id:
+        return player.send_error_message("Вы не можете указать себя!")
+
+    target = Player.from_registry_native(target_id)
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+
+    target.toggle_controllable(False)
+    return player.send_notification_message(f"Вы заморозили игрока {{{Colors.cmd_hex}}}{target.name}({target.id}){{{Colors.white_hex}}}.")
+
+@cmd
+@Player.using_registry
+def unfreeze(player: Player, player_id: int):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(3):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    try:
+        target_id = int(player_id)
+
+    except:
+        return player.send_error_message("Игрок не найден!")
+
+    if player.id == target_id:
+        return player.send_error_message("Вы не можете указать себя!")
+
+    target = Player.from_registry_native(target_id)
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+
+    target.toggle_controllable(True)
+    return player.send_notification_message(f"Вы разморозили игрока {{{Colors.cmd_hex}}}{target.name}({target.id}){{{Colors.white_hex}}}.")
+
+@cmd
+@Player.using_registry
+def ban(player: Player, player_id: int, *reason: str):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(3):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    try:
+        target_id = int(player_id)
+
+    except:
+        return player.send_error_message("Игрок не найден!")
+
+    reason = " ".join(reason)
+    if len(reason) == 0:
+        return player.send_error_message("Использование команды: /ban player_id [reason]")
+
+    if player.id == target_id:
+        return player.send_error_message("Вы не можете указать себя!")
+
+    target = Player.from_registry_native(target_id)
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+
+    target.is_data.banned = True
+    target.ban_from_server(reason)
+    return send_client_message_to_all(Colors.admin, f"Администратор {player.name}({player.id}) забанил игрока {target.name}({target.id}). Причина: {reason}.")
+
+@cmd
+@Player.using_registry
+def unban(player: Player, player_name: str):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(3):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    target = DataBase.get_player_name(player_name)
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+
+    if not target.is_data.banned:
+        return player.send_error_message("Игрок не находится в бане!")
+
+    DataBase.save_player_name(player_name, is_banned=False)
+    return send_client_message_to_all(Colors.admin, f"Администратор {player.name}({player.id}) разбанил игрока {target.name}({target.id}).")
+
+@cmd
+@Player.using_registry
+def settime(player: Player, hour: int):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(4):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    try:
+        target_hour = int(hour)
+
+    except:
+        return player.send_error_message("Укажите время!")
+
+    set_world_time(target_hour)
+    return send_client_message_to_all(Colors.admin, f"Администратор {player.name}({player.id}) изменил время на {hour} часов.")
+
+@cmd
+@Player.using_registry
+def getip(player: Player, player_id: int):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(4):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    try:
+        target_id = int(player_id)
+
+    except:
+        return player.send_error_message("Игрок не найден!")
+
+    target = Player.from_registry_native(target_id)
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+
+    return player.send_notification_message(f"IP игрока {{{Colors.cmd_hex}}}{target.name}({target.id}){{{Colors.white_hex}}} - {{{Colors.cmd_hex}}}{target.get_ip()}{{{Colors.white_hex}}}.")
+
+@cmd
+@Player.using_registry
+def givegun(player: Player, player_id: int, weapon_id: int, ammo: int = 100):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(4):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    try:
+        target_id = int(player_id)
+
+    except:
+        return player.send_error_message("Игрок не найден!")
+
+    try:
+        target_weapon_id = int(weapon_id)
+
+    except:
+        return player.send_error_message("Оружие не найдено!")
+
+    try:
+        target_ammo = int(ammo)
+
+    except:
+        return player.send_error_message("Укажите количество патронов!")
+
+    target = Player.from_registry_native(target_id)
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+
+    target.give_weapon(target_weapon_id, target_ammo)
+    target.send_notification_message(f"Администратор {{{Colors.cmd_hex}}}{player.name}({player.id}){{{Colors.white_hex}}} выдал Вам оружие.")
+    return player.send_notification_message(f"Вы выдали оружие игроку {{{Colors.cmd_hex}}}{target.name}({target.id}){{{Colors.white_hex}}}.")
+
+@cmd
+@Player.using_registry
+def sethp(player: Player, player_id: int, health: float):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(4):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    try:
+        target_id = int(player_id)
+
+    except:
+        return player.send_error_message("Игрок не найден!")
+
+    try:
+        target_health = float(health)
+
+    except:
+        return player.send_error_message("Укажите количество HP!")
+
+    target = Player.from_registry_native(target_id)
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+
+    target.set_health(target_health)
+    target.send_notification_message(f"Администратор {{{Colors.cmd_hex}}}{player.name}({player.id}){{{Colors.white_hex}}} изменил Вам значение HP.")
+    return player.send_notification_message(f"Вы изменили значение HP игроку {{{Colors.cmd_hex}}}{target.name}({target.id}){{{Colors.white_hex}}}.")
+
+@cmd
+@Player.using_registry
+def amusic(player: Player, player_id: int, url: str, distance: float = 5.0):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(5):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    try:
+        target_id = int(player_id)
+
+    except:
+        return player.send_error_message("Игрок не найден!")
+
+    try:
+        target_distance = float(distance)
+
+    except:
+        return player.send_error_message("Укажите дистанцию!")
+
+    target = Player.from_registry_native(target_id)
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+
+    target.play_audio_stream(url, *target.get_pos(), distance=target_distance)
+    return player.send_notification_message(f"Вы включили аудио для игрока {{{Colors.cmd_hex}}}{target.name}({target.id}){{{Colors.white_hex}}}.")
+
+@cmd
+@Player.using_registry
+def stopamusic(player: Player, player_id: int):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(5):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    try:
+        target_id = int(player_id)
+
+    except:
+        return player.send_error_message("Игрок не найден!")
+
+    target = Player.from_registry_native(target_id)
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+
+    target.stop_audio_stream()
+    return player.send_notification_message(f"Вы выключили аудио для игрока {{{Colors.cmd_hex}}}{target.name}({target.id}){{{Colors.white_hex}}}.")
+
+@cmd
+@Player.using_registry
+def deleteplayer(player: Player, player_name: str):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(6):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    try:
+        target_name = str(player_name)
+
+    except:
+        return player.send_error_message("Игрок не найден!")
+
+    player_db = DataBase.get_player_name(target_name)
+    if not player_db:
+        return player.send_error_message("Игрок не найден!")
+
+    DataBase.save_player_name(target_name, is_banned=True)
+    return player.send_notification_message(f"Вы удалили аккаунт игрока {{{Colors.cmd_hex}}}{target_name}{{{Colors.white_hex}}}.")
+
+@cmd
+@Player.using_registry
+def setvip(player: Player, player_id: int, level: int):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(6):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    try:
+        target_id = int(player_id)
+
+    except:
+        return player.send_error_message("Игрок не найден!")
+
+    try:
+        target_level = int(level)
+
+    except:
+        return player.send_error_message("Укажите уровень VIP!")
+
+    if target_level not in (1, 2, 3):
+        return player.send_error_message("Укажите уровень от 1 до 3")
+
+    target = Player.from_registry_native(target_id)
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+
+    target.vip.level = target_level - 1
+    target.send_notification_message(
+        f"Администратор {{{Colors.cmd_hex}}}{player.name}({player.id}){{{Colors.white_hex}}} изенил Ваш уровень VIP на {{{VIPData.colors[target.vip.level]}}}{VIPData.names[target.vip.level]}{{{Colors.white_hex}}}."
+    )
+    return player.send_notification_message(f"Вы изменили значение VIP игроку {{{Colors.cmd_hex}}}{target.name}({target.id}){{{Colors.white_hex}}} на {{{VIPData.colors[target.vip.level]}}}{VIPData.names[target.vip.level]}{{{Colors.white_hex}}}.")
+
+@cmd
+@Player.using_registry
+def setgangzone(player: Player, gangzone_id: int, gang_id: int):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(6):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    try:
+        target_gangzone = int(gangzone_id)
+        gangzone = GangZoneData.get_from_registry(target_gangzone)
+
+    except:
+        return player.send_error_message("Гангзона не найдена (используйте /gangzones)!")
+
+    try:
+        target_gang = int(gang_id)
+
+    except:
+        player.send_error_message(f"Укажите ID!")
+
+    if not target_gang in gangs.keys():
+        player.send_error_message(f"Банда не найдена!")
+        gangs_str = ""
+        for key, value in gangs.values():
+            gangs_str += f"ID: {key} - Name: {value.gang_name}"
+            player.send_error_message(f"{gangs_str}!")
+        return
+
+    gangzone.gang_id = target_gang
+    gangzone.color = gangs[target_gang].color
+    gangzone.gang_atk_id = 0
+    gangzone.gang_def_id = 0
+    gangzone.gang_atk_score = 0
+    gangzone.gang_def_score = 0
+    gangzone.capture_cooldown = 120
+    gangzone.capture_time = 0
+    gangzone.is_capture = False
+    for player_gw in Player._registry.values():
+        if player_gw.mode == ServerWorldIDs.gangwar_world:
+            player_gw.reload_gangzones_for_player()
+
+    return player.send_notification_message(f"Гангзона обновлена!")
+
+@cmd
+@Player.using_registry
+def spawnveh(player: Player, vehicle_id: int, color_one: int, color_two: int):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(6):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    try:
+        target_vehicle_id = int(vehicle_id)
+
+    except:
+        player.send_error_message(f"Укажите ID!")
+
+    if player.vehicle.id != ID_NONE:
+        veh = Vehicle.get_from_registry(player.vehicle.id)
+        Vehicle.remove_unused_player_vehicle(veh)
+
+    player_veh = Vehicle.create(
+        target_vehicle_id,
+        *player.get_pos(),
+        player.get_facing_angle(),
+        color_one,
+        color_two,
+        -1,
+        player.mode
+    )
+    player_veh.set_info(owner=player.get_name())
+    player.vehicle.id = player_veh.id
+    player.put_in_vehicle(player.vehicle.id, 0)
+
+@cmd
+@Player.using_registry
+def players(player: Player):
+    for id, player in Player._registry.items():
+        send_client_message_to_all(-1, f"ID: {id} | Player: {player}")
+
+@cmd(aliases=("veh", "vehicle", "v"))
+@Player.using_registry
+def vehicles(player: Player):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+        return
+
+    return Dialogs.show_vehicles_dialog(player)
+
+@cmd
+@Player.using_registry
+def pay(player: Player, player_id: int, amount: int):
+    player.kick_if_not_logged()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    try:
+        target_id = int(player_id)
+
+    except:
+        return player.send_error_message("Игрок не найден!")
+
+    try:
+        target_amount = int(amount)
+
+    except:
+        return player.send_error_message("Укажите количество!")
+
+    target = Player.from_registry_native(target_id)
+    if not target:
+        return player.send_error_message("Игрок не найден!")
+
+    if amount < 0:
+        return player.send_error_message("Укажите число больше 0!")
+
+    if player.money - amount < 0:
+        return player.send_error_message(f"Вам не хватает {{{Colors.cmd_hex}}}{amount - player.money}${{{Colors.red_hex}}}!")
+
+    if player.distance_from_point(*target.get_pos) > 3.0:
+        return player.send_error_message("Игрок слишком далеко!")
+
+    player.set_money_ex(amount, increase=False)
+    target.set_money_ex(amount)
+    target.send_notification_message(f"Игрок {{{Colors.cmd_hex}}}{player.name}({player.id}){{{Colors.white_hex}}} передал Вам {{{Colors.green_hex}}}{amount}${{{Colors.white_hex}}}.")
+    return player.send_notification_message(f"Вы передали {{{Colors.green_hex}}}{amount}${{{Colors.white_hex}}} игроку {{{Colors.cmd_hex}}}{player.name}({player.id}){{{Colors.white_hex}}}.")
+
+@cmd
+@Player.using_registry
+def elegy(player: Player, color_one: int, color_two: int):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+        return
+
+    if player.money - 5000 < 0:
+        return player.send_error_message(f"Вам не хватает {{{Colors.cmd_hex}}}{5000 - player.money}${{{Colors.red_hex}}}!")
+
+    try:
+        target_color_one = int(color_one)
+
+    except:
+        target_color_one = 1
+
+    try:
+        target_color_two = int(color_two)
+
+    except:
+        target_color_two = 1
+
+    player.remove_unused_vehicle()
+    player_veh = Vehicle.create(
+        562,
+        *player.get_pos(),
+        player.get_facing_angle(),
+        target_color_one,
+        target_color_two,
+        -1,
+        player.mode
+    )
+    player_veh.set_info(owner=player.get_name())
+    player.vehicle.id = player_veh.id
+    player.put_in_vehicle(player.vehicle.id, 0)
+
+@cmd
+@Player.using_registry
+def infernus(player: Player, color_one: int, color_two: int):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+        return
+
+    if player.money - 5000 < 0:
+        return player.send_error_message(f"Вам не хватает {{{Colors.cmd_hex}}}{5000 - player.money}${{{Colors.red_hex}}}!")
+
+    try:
+        target_color_one = int(color_one)
+
+    except:
+        target_color_one = 1
+
+    try:
+        target_color_two = int(color_two)
+
+    except:
+        target_color_two = 1
+
+    player.remove_unused_vehicle()
+    player_veh = Vehicle.create(
+        411,
+        *player.get_pos(),
+        player.get_facing_angle(),
+        target_color_one,
+        target_color_two,
+        -1,
+        player.mode
+    )
+    player_veh.set_info(owner=player.get_name())
+    player.vehicle.id = player_veh.id
+    player.put_in_vehicle(player.vehicle.id, 0)
+
+@cmd
+@Player.using_registry
+def bullet(player: Player, color_one: int, color_two: int):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+        return
+
+    if player.money - 5000 < 0:
+        return player.send_error_message(f"Вам не хватает {{{Colors.cmd_hex}}}{5000 - player.money}${{{Colors.red_hex}}}!")
+
+    try:
+        target_color_one = int(color_one)
+
+    except:
+        target_color_one = 1
+
+    try:
+        target_color_two = int(color_two)
+
+    except:
+        target_color_two = 1
+
+    player.remove_unused_vehicle()
+    player_veh = Vehicle.create(
+        541,
+        *player.get_pos(),
+        player.get_facing_angle(),
+        target_color_one,
+        target_color_two,
+        -1,
+        player.mode
+    )
+    player_veh.set_info(owner=player.get_name())
+    player.vehicle.id = player_veh.id
+    player.put_in_vehicle(player.vehicle.id, 0)
+
+@cmd
+@Player.using_registry
+def sultan(player: Player, color_one: int, color_two: int):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+        return
+
+    if player.money - 5000 < 0:
+        return player.send_error_message(f"Вам не хватает {{{Colors.cmd_hex}}}{5000 - player.money}${{{Colors.red_hex}}}!")
+
+    try:
+        target_color_one = int(color_one)
+
+    except:
+        target_color_one = 1
+
+    try:
+        target_color_two = int(color_two)
+
+    except:
+        target_color_two = 1
+
+    player.remove_unused_vehicle()
+    player_veh = Vehicle.create(
+        560,
+        *player.get_pos(),
+        player.get_facing_angle(),
+        target_color_one,
+        target_color_two,
+        -1,
+        player.mode
+    )
+    player_veh.set_info(owner=player.get_name())
+    player.vehicle.id = player_veh.id
+    player.put_in_vehicle(player.vehicle.id, 0)

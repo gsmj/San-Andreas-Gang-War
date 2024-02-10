@@ -6,7 +6,6 @@ from pystreamer.dynamicpickup import DynamicPickup
 from .textdraws import TextDraws
 
 
-
 class Gang:
     def __init__(
         self,
@@ -191,13 +190,9 @@ class GangZoneData:
         self.capture_cooldown = capture_cooldown
         self.capture_time = capture_time
         self.is_capture = is_capture
-
-    def using_registry(self, gangzone_id: int):
         data = self._registry.get(gangzone_id)
         if not data:
             self._registry[gangzone_id] = self
-
-        return self
 
     @classmethod
     def get_from_registry(cls, gangzone_id: int) -> "GangZoneData":

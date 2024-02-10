@@ -7,12 +7,9 @@ from pysamp import (
     enable_stunt_bonus_for_all,
     manual_vehicle_engine_and_lights,
     disable_interior_enter_exits,
-    allow_interior_weapons,
     limit_global_chat_radius,
-    limit_player_marker_radius,
     show_player_markers,
     create_3d_text_label,
-    add_player_class
 )
 from pysamp.gangzone import Gangzone
 from pysamp.textdraw import TextDraw
@@ -30,18 +27,19 @@ from .libs.utils import *
 from .libs.database import DataBase
 from .libs.commands import *
 from .libs.textdraws import TextDraws
+from .libs.objects import Objects
 from .libs.version import __version__
+from .libs.consts import NO_VEHICLE_OWNER
 import os
 import random
 encode()
-
 
 @on_gamemode_init
 def on_ready() -> None:
     register_callbacks()
     register_drift_callbacks()
     drift_set_global_check()
-    drift_set_update_delay(10)
+    drift_set_update_delay(5)
     DataBase.create_metadata()
     DataBase.create_gangzones()
     print(f"Created: GangZone (gang)")
@@ -52,17 +50,16 @@ def on_ready() -> None:
     send_rcon_command(f"language {ServerInfo.language}")
     send_rcon_command(f"game.map {ServerInfo.map}")
     set_game_mode_text(ServerInfo.gamemode)
-    set_name_tag_draw_distance(30.0)
-    allow_interior_weapons(False)
+    set_name_tag_draw_distance(20.0)
     limit_global_chat_radius(16.0)
-    limit_player_marker_radius(14.0)
-    show_player_markers(2)
+    show_player_markers(1)
     create_3d_text_label("Grove Street Families", 0x009900FF, 2514.3403, -1691.5911, 14.0460, 10, 0, test_line_of_sight=True)
     create_3d_text_label("The Ballas", 0xCC00FFFF, 2022.9318, -1120.2645, 26.4210+1, 10, 0, test_line_of_sight=True)
     create_3d_text_label("Los Santos Vagos", 0xffcd00FF, 2756.3645,-1182.8091, 69.4035+1, 10, 0, test_line_of_sight=True)
     create_3d_text_label("Varios Los Aztecas", 0x00B4E1FF, 2185.7717, -1815.2280, 13.5469, 10, 0, test_line_of_sight=True)
     create_3d_text_label("The Rifa", 0x6666FFFF, 2787.0764,-1926.1918, 13.5469+1, 10, 0, test_line_of_sight=True)
     TextDraws.load()
+    Objects.load()
     gangzones = DataBase.load_gangzones_order_by()
     if gangzones:
         for gangzone in gangzones:
@@ -76,29 +73,41 @@ def on_ready() -> None:
                 gangzone.gang_def_score,
                 gangzone.capture_cooldown,
                 gangzone.is_capture,
-                gangzone.capture_time).using_registry(gangzone.id)
+                gangzone.capture_time
+            )
+    print("GangZone's registry:")
+    for id, value in GangZoneData._registry.items():
+        print(f"\tID: {id} | Inst: {value}")
 
     vehicles = DataBase.load_vehicles_order_by()
     if vehicles:
         for vehicle in vehicles:
-            veh = Vehicle(
-                vehicle.model_id,
-                vehicle.owner,
-                vehicle.engine,
-                vehicle.lights,
-                vehicle.doors
-            ).create(
-                vehicle.model_id,
-                vehicle.x,
-                vehicle.y,
-                vehicle.z,
-                vehicle.rotation,
-                vehicle.color1,
-                vehicle.color2,
-                vehicle.delay,
-                add_siren=vehicle.add_siren).add_to_registry()
-            veh.set_virtual_world(vehicle.virtual_world)
+            if vehicle.virtual_world != ServerWorldIDs.freeroam_world:
+                veh = Vehicle.create(
+                    vehicle.model_id,
+                    vehicle.x,
+                    vehicle.y,
+                    vehicle.z,
+                    vehicle.rotation,
+                    vehicle.color1,
+                    vehicle.color2,
+                    vehicle.delay,
+                    vehicle.virtual_world,
+                    add_siren=vehicle.add_siren,
+                )
+                veh.set_info(
+                    owner=vehicle.owner,
+                    engine=vehicle.engine,
+                    lights=vehicle.lights,
+                    doors=vehicle.doors
+                )
 
+    print("Vehicle's registry:")
+    for id, value in Vehicle._registry.items():
+        print(f"\tID: {id} | Inst: {value}")
+
+    print(f"Loaded {len(GangZoneData._registry.items())} gangzones")
+    print(f"Loaded {len(Vehicle._registry.items())} vehicles")
     print(f"Loaded: {ServerInfo.name_short} (v{__version__})")
     print("Created by: Ykpauneu & Rein.")
     set_timer(every_second, 1000, True)
@@ -108,6 +117,12 @@ def every_second():
     for gangzone in GangZoneData._registry.values():
         if gangzone.capture_cooldown != 0:
             gangzone.capture_cooldown -= 1
+
+        if gangzone.capture_cooldown == 0:
+            DataBase.save_gangzone(
+                gangzone.gangzone_id,
+                capture_cooldown=0
+            )
 
         if gangzone.is_capture:
             if gangzone.capture_time != 0:
@@ -212,3 +227,8 @@ def on_player_drift_update(player: Player, value: int, combo: int, flag_id: int,
 @Player.using_registry
 def on_player_end_drift(player: Player, value: int, combo: int, reason: int) -> None:
     player.on_end_drift_handle(value, combo, reason)
+
+@Vehicle.on_death
+@Vehicle.using_registry
+def on_vehicle_death(vehicle: Vehicle, killer: Player) -> None:
+    vehicle.on_death_handle(killer)
