@@ -38,9 +38,6 @@ def stats(player: Player, player_id: int = None):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.admin.check_command_access(1):
-        return player.send_error_message("Вам недоступна эта команда!")
-
     if player_id:
         try:
             target_id = int(player_id)
