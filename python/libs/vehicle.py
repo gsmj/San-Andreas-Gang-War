@@ -1,8 +1,9 @@
 from pysamp.vehicle import Vehicle as BaseVehicle
+from pysamp.timer import set_timer
 from .utils import ServerWorldIDs
 from functools import wraps
 from dataclasses import dataclass
-from .consts import NO_VEHICLE_OWNER, ID_NONE
+from .consts import NO_VEHICLE_OWNER, ID_NONE, TIMER_ID_NONE
 from typing import TypeVar
 
 
@@ -478,6 +479,7 @@ class Vehicle(BaseVehicle):
         self.engine = 0
         self.lights = 0
         self.doors = 0
+        self.repair_timer = TIMER_ID_NONE
 
     @classmethod
     def from_registry_native(cls, vehicle: BaseVehicle) -> "Vehicle":
@@ -548,6 +550,9 @@ class Vehicle(BaseVehicle):
         if vehicle.is_valid():
             vehicle.destroy()
 
+    def repair_ex(self) -> None:
+        self.repair()
+        self.repair_timer = ID_NONE
 
     # Handlers
 
@@ -557,4 +562,5 @@ class Vehicle(BaseVehicle):
             return self.delete_registry(self)
 
     def on_damage_status_handle(self, player) -> None:
-        return self.repair()
+        if self.repair_timer == ID_NONE:
+            return set_timer(self.repair_ex, 1500, False)

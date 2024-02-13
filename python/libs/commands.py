@@ -14,7 +14,7 @@ from .utils import (
     ServerInfo,
     GunData
 )
-from .consts import TIMER_ID_NONE, ID_NONE
+from .consts import TIMER_ID_NONE
 from .database import DataBase
 from datetime import datetime as dt
 from zoneinfo import ZoneInfo
@@ -1523,7 +1523,6 @@ def elegy(player: Player, color_one: int, color_two: int):
         player.mode
     )
     player_veh.set_info(owner=player.get_name())
-    player_veh.add_component(VehicleComponents.nitro_x10)
     player.update_vehicle_inst(player_veh)
     player.put_in_vehicle(player.vehicle.inst.id, 0)
 
@@ -1563,7 +1562,6 @@ def infernus(player: Player, color_one: int, color_two: int):
         player.mode
     )
     player_veh.set_info(owner=player.get_name())
-    player_veh.add_component(VehicleComponents.nitro_x10)
     player.update_vehicle_inst(player_veh)
     player.put_in_vehicle(player.vehicle.inst.id, 0)
 
@@ -1603,7 +1601,6 @@ def bullet(player: Player, color_one: int, color_two: int):
         player.mode
     )
     player_veh.set_info(owner=player.get_name())
-    player_veh.add_component(VehicleComponents.nitro_x10)
     player.update_vehicle_inst(player_veh)
     player.put_in_vehicle(player.vehicle.inst.id, 0)
 
@@ -1643,7 +1640,6 @@ def sultan(player: Player, color_one: int, color_two: int):
         player.mode
     )
     player_veh.set_info(owner=player.get_name())
-    player_veh.add_component(VehicleComponents.nitro_x10)
     player.update_vehicle_inst(player_veh)
     player.put_in_vehicle(player.vehicle.inst.id, 0)
 
@@ -1695,24 +1691,24 @@ def tuning(player: Player):
 
     return Dialogs.show_tuning_dialog(player)
 
-@cmd()
+@cmd
 @Player.using_registry
 def pdata(player: Player, player_id: int):
     if not player.admin.check_command_access(7):
         return
 
-    player = Player.from_registry_native(int(player_id))
-    player.send_notification_message(f"{{{Colors.admin_hex}}}Drift: {player.drift}")
-    player.send_notification_message(f"{{{Colors.admin_pm_hex}}}Gun slots: {player.gun_slots}")
-    player.send_notification_message(f"{{{Colors.white_hex}}}VIP: {player.vip}")
-    player.send_notification_message(f"{{{Colors.green_hex}}}Admin: {player.admin}")
-    player.send_notification_message(f"{{{Colors.red_hex}}}Is: {player.is_data}")
-    player.send_notification_message(f"{{{Colors.dark_green_hex}}}Time: {player.time}")
-    player.send_notification_message(f"{{{Colors.aztecas_hex}}}Settings: {player.settings}")
-    player.send_notification_message(f"{{{Colors.ballas_hex}}}Timers: {player.timers}")
-    player.send_notification_message(f"{{{Colors.vip_hex}}}Temp: {player.tmp}")
-    player.send_notification_message(f"{{{Colors.gold_hex}}}Vehicle: {player.vehicle}")
+    player_ = Player.from_registry_native(int(player_id))
+    player.send_notification_message(f"{{{Colors.admin_hex}}}Drift: {player_.drift}")
+    player.send_notification_message(f"{{{Colors.admin_pm_hex}}}Gun slots: {player_.gun_slots}")
+    player.send_notification_message(f"{{{Colors.white_hex}}}VIP: {player_.vip}")
+    player.send_notification_message(f"{{{Colors.green_hex}}}Admin: {player_.admin}")
+    player.send_notification_message(f"{{{Colors.red_hex}}}Is: {player_.is_data}")
+    player.send_notification_message(f"{{{Colors.dark_green_hex}}}Time: {player_.time}")
+    player.send_notification_message(f"{{{Colors.aztecas_hex}}}Settings: {player_.settings}")
+    player.send_notification_message(f"{{{Colors.ballas_hex}}}Timers: {player_.timers}")
+    player.send_notification_message(f"{{{Colors.vip_hex}}}Temp: {player_.tmp}")
+    player.send_notification_message(f"{{{Colors.gold_hex}}}Vehicle: {player_.vehicle}")
     try:
-        player.send_notification_message(f"{{{Colors.silver_hex}}}Vehicle in registry: {Vehicle._registry[player.get_vehicle_id()]}")
+        player.send_notification_message(f"{{{Colors.silver_hex}}}Vehicle in registry: {Vehicle._registry[player_.get_vehicle_id()]}")
     except:
         player.send_notification_message(f"{{{Colors.silver_hex}}}Vehicle in registry: Not found")

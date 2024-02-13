@@ -341,20 +341,13 @@ class DataBase():
             return result.scalars().all()
 
     @classmethod
-    def load_admin_position(cls, player: "Player", id: int) -> AdminSavedPositions:
+    def load_admin_position(cls, player: "Player", name: str) -> AdminSavedPositions:
         with cls.Session() as session:
-            result = session.execute(select(AdminSavedPositions).where(and_(AdminSavedPositions.admin == player.get_name(), AdminSavedPositions.uid == id)))
+            result = session.execute(select(AdminSavedPositions).where(and_(AdminSavedPositions.admin == player.get_name(), AdminSavedPositions.name == name)))
             return result.scalar()
 
     @classmethod
-    def delete_admin_position(cls, player: "Player", id: int) -> AdminSavedPositions:
+    def delete_admin_position(cls, player: "Player", name: str) -> AdminSavedPositions:
         with cls.Session() as session:
-            session.execute(delete(AdminSavedPositions).where(and_(AdminSavedPositions.admin == player.get_name(), AdminSavedPositions.uid == id)))
+            session.execute(delete(AdminSavedPositions).where(and_(AdminSavedPositions.admin == player.get_name(), AdminSavedPositions.name == name)))
             session.commit()
-
-
-    # @classmethod
-    # def load_biggest_vehicle_id(cls) -> Vehicle:
-    #     with cls.Session() as session:
-    #         result = session.execute(select(func.max(Vehicle.id)))
-    #         return result.scalar()

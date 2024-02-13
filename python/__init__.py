@@ -11,7 +11,9 @@ from pysamp import (
     show_player_markers,
     create_3d_text_label,
     set_world_time,
-    send_client_message_to_all
+    send_client_message_to_all,
+    limit_player_marker_radius,
+    show_name_tags
 )
 from datetime import datetime
 from zoneinfo import ZoneInfo
@@ -41,32 +43,31 @@ encode()
 
 @on_gamemode_init
 def on_ready() -> None:
+    DataBase.create_metadata()
     register_callbacks()
     register_drift_callbacks()
     drift_set_global_check()
     drift_set_update_delay(8)
-    drift_set_start_end_delay(50)
+    drift_set_start_end_delay(60)
     drift_set_minimal_angle(15.5)
     drift_set_minimal_speed(25.5)
-    drift_set_divider(100)
+    drift_set_divider(1000)
     drift_set_damage_check()
-    DataBase.create_metadata()
-    DataBase.create_gangzones()
     enable_stunt_bonus_for_all(False)
     manual_vehicle_engine_and_lights()
     disable_interior_enter_exits()
+    show_name_tags(True)
+    show_player_markers(1)
     send_rcon_command(f"name {ServerInfo.name}")
     send_rcon_command(f"language {ServerInfo.language}")
     send_rcon_command(f"game.map {ServerInfo.map}")
     set_game_mode_text(ServerInfo.gamemode)
-    set_name_tag_draw_distance(20.0)
-    limit_global_chat_radius(16.0)
-    show_player_markers(1)
     create_3d_text_label("Grove Street Families", 0x009900FF, 2514.3403, -1691.5911, 14.0460, 10, 0, test_line_of_sight=True)
     create_3d_text_label("The Ballas", 0xCC00FFFF, 2022.9318, -1120.2645, 26.4210+1, 10, 0, test_line_of_sight=True)
     create_3d_text_label("Los Santos Vagos", 0xffcd00FF, 2756.3645,-1182.8091, 69.4035+1, 10, 0, test_line_of_sight=True)
     create_3d_text_label("Varios Los Aztecas", 0x00B4E1FF, 2185.7717, -1815.2280, 13.5469, 10, 0, test_line_of_sight=True)
     create_3d_text_label("The Rifa", 0x6666FFFF, 2787.0764,-1926.1918, 13.5469+1, 10, 0, test_line_of_sight=True)
+    DataBase.create_gangzones()
     TextDraws.load()
     Objects.load()
     gangzones = DataBase.load_gangzones_order_by()

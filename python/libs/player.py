@@ -337,7 +337,7 @@ class Player(BasePlayer):
 
     def update_drift_counter(self, value: int) -> None:
         self.drift.money += value
-        self.drift.score += int(value / 1000)
+        self.drift.score += int(value / 100)
         self.drift.combo += int(self.drift.score / 100)
         self.drift_counter[2].set_string(f"Cash: ~g~{self.drift.money}$")
         self.drift_counter[3].set_string(f"Score: ~y~{self.drift.score}")
@@ -373,7 +373,7 @@ class Player(BasePlayer):
     def remove_unused_vehicle(self):
         if self.vehicle.inst:
             Vehicle.remove_unused_player_vehicle(self.vehicle.inst)
-            self.vehicle.inst = None
+            # self.vehicle.inst = None
 
     def get_zone_name(self, x: float, y: float):
         return call_remote_function("GetMapZoneAtPoint2D", x, y)
@@ -633,31 +633,21 @@ class Player(BasePlayer):
         self.masks = player_db.masks
         self.gang_id = player_db.gang_id
         self.gang = gangs[self.gang_id]
-        self.vip = PlayerVIP(
-            level=player_db.vip_level
-        )
-        self.admin = PlayerAdmin(
-            level=player_db.admin_level
-        )
-        self.is_data = PlayerIs(
-            muted=player_db.is_muted,
-            jailed=player_db.is_jailed,
-            logged=True,
-            banned=player_db.is_banned,
-        )
-        self.time = PlayerTime(
-            jail=player_db.jail_time,
-            mute=player_db.mute_time
-        )
-        self.settings = PlayerSettings(
-            disabled_ping_td=player_settings.disabled_ping_td,
-            disabled_global_chat_gw=player_settings.disabled_global_chat_gw
-        )
+        self.vip.level=player_db.vip_level
+        self.admin.level=player_db.admin_level
+        self.is_data.muted=player_db.is_muted
+        self.is_data.jailed=player_db.is_jailed
+        self.is_data.logged=True
+        self.is_data.banned=player_db.is_banned
+        self.time.jail=player_db.jail_time
+        self.time.mute=player_db.mute_time
+        self.settings.disabled_ping_td=player_settings.disabled_ping_td
+        self.settings.disabled_global_chat_gw=player_settings.disabled_global_chat_gw
         self.play_sound(1052, x=0.0, y=0.0, z=0.0)
         self.set_max_gun_skill()
         self.reset_money()
+        self.set_money_ex(self.money, show_text=False)
         self.set_score(self.score)
-        self.give_money(self.money)
         self.update_freeroam_gun_slots(DataBase.get_player_freeroam_gun_slots(self))
         if not self.is_data.jailed:
             return Dialogs.show_select_mode_dialog(self)
@@ -775,7 +765,6 @@ class Player(BasePlayer):
                 self.send_notification_message(" ")
 
             self.toggle_clock(False)
-            self.play_sound(1062, x=0.0, y=0.0, z=0.0)
             self.send_notification_message(f"Добро пожаловать на сервер {{{Colors.cmd_hex}}}{ServerInfo.name_short}{{{Colors.white_hex}}}!")
             self.send_notification_message(f"Версия: {{{Colors.cmd_hex}}}{__version__}{{{Colors.white_hex}}}!")
             self.send_notification_message(f"Created by: {{{Colors.vagos_hex}}}Ykpauneu{{{Colors.white_hex}}} & {{{Colors.rifa_hex}}}Rein.{{{Colors.white_hex}}}!")
@@ -881,7 +870,7 @@ class Player(BasePlayer):
             return self.set_jail_spawn_info()
 
         if killer.id == INVALID_PLAYER_ID:
-            return self.delete_registry(killer.id)
+            return self.delete_registry(killer)
 
         killer.kills += 1
         killer.set_money_ex(1000)
@@ -898,8 +887,14 @@ class Player(BasePlayer):
 
     def on_text_handle(self, text: str) -> False:
         self.kick_if_not_logged()
-        if int(text) == MathTest.correct_answer:
-            return MathTest.send_winner_message(self)
+        if MathTest.correct_answer != ID_NONE:
+            try:
+                answer = int(text)
+            except:
+                pass
+            else:
+                if answer == MathTest.correct_answer:
+                    return MathTest.send_winner_message(self)
 
         if self.is_data.muted:
             self.set_chat_bubble("Пытается что-то сказать.", Colors.red, 20.0, 10000)
@@ -1054,7 +1049,7 @@ class Player(BasePlayer):
                     0
                 )
 
-        if (self.get_state() == PLAYER_STATE_DRIVER) and (old_keys == 4):
+        if self.get_state() == PLAYER_STATE_DRIVER and old_keys == 4:
             if self.vehicle.inst.is_car:
                 if self.vehicle.inst.lights == 1:
                     self.vehicle.inst.lights = 0
@@ -1071,6 +1066,11 @@ class Player(BasePlayer):
                     0,
                     0
                 )
+
+        if self.get_state() == PLAYER_STATE_DRIVER and self.mode == ServerWorldIDs.freeroam_world:
+            if new_keys == 1 or new_keys == 9 or new_keys == 33 and old_keys != 1 or old_keys != 9 or old_keys != 33:
+                if self.vehicle.inst.is_car:
+                    self.vehicle.inst.add_component(1010)
 
     def on_state_change_handle(self, new_state: int, old_state: int) -> None:
         if new_state == PLAYER_STATE_DRIVER:
@@ -1143,7 +1143,7 @@ class Player(BasePlayer):
             return self.enable_freeroam_mode()
 
     def on_click_map_handle(self, x: float, y: float, z: float) -> None:
-        if self.mode == ServerWorldIDs.freeroam_world and self.vip == 1:
+        if self.mode == ServerWorldIDs.freeroam_world and self.vip >= 1:
             return self.set_pos(x, y, z)
 
     def on_start_drift_handle(self) -> None:
@@ -2070,7 +2070,6 @@ class Dialogs:
             player.mode
         )
         player_veh.set_info(owner=player.get_name())
-        player_veh.add_component(VehicleComponents.nitro_x10)
         player.update_vehicle_inst(player_veh)
         player.put_in_vehicle(player.vehicle.inst.id, 0)
 
@@ -2156,6 +2155,10 @@ class Dialogs:
             player.send_error_message("Название позиции должно быть больше 0 и меньше 32 символов!")
             return cls.show_positions_dialog(player)
 
+        if DataBase.load_admin_position(player, input_text):
+            player.send_error_message("Позиция с таким названием уже существует!")
+            return cls.show_positions_dialog(player)
+
         DataBase.create_admin_pos(player, input_text, *player.get_pos(), player.get_facing_angle())
         return player.send_notification_message(f"Вы создали позицию: {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}.")
 
@@ -2165,7 +2168,7 @@ class Dialogs:
         return Dialog.create(
             1,
             "Удаление позиции",
-            "Введите ID позиции:",
+            "Введите название позиции:",
             "Ок",
             "Назад",
             on_response=cls.delete_position_response
@@ -2177,34 +2180,25 @@ class Dialogs:
         if not response:
             return cls.show_positions_dialog(player)
 
-        try:
-            int_text = int(input_text)
-        except:
-            player.send_error_message("Укажите целое число!")
-            return Dialogs.show_delete_position_dialog(player)
-
-        pos_id = DataBase.load_admin_position(player, int_text)
+        pos_id = DataBase.load_admin_position(player, input_text)
         if not pos_id:
-            player.send_error_message("Не удалось найти ID позиции!")
+            player.send_error_message("Не удалось найти позицию!")
             return cls.show_delete_position_dialog(player)
 
         player.send_notification_message(f"Вы удалили позицию: {{{Colors.cmd_hex}}}{pos_id.name}{{{Colors.white_hex}}}.")
-        return DataBase.delete_admin_position(player, pos_id.uid)
+        return DataBase.delete_admin_position(player, pos_id.name)
 
     @classmethod
     def show_list_position_dialog(cls, player: Player) -> None:
         player = Player.from_registry_native(player)
         dialog_pos = ""
         for pos in DataBase.load_admin_positions(player):
-            dialog_pos += f"{{{Colors.dialog_hex}}}{pos.uid}\t{{{Colors.cmd_hex}}}{pos.name}\n"
+            dialog_pos += f"{pos.name}\n"
 
         return Dialog.create(
-            5,
+            2,
             "Список позиций",
-            (
-                "ID\tНазвание\n"
-                f"{dialog_pos}"
-            ),
+            f"{dialog_pos}",
             "Телепорт",
             "Назад",
             on_response=cls.list_position_response
@@ -2216,7 +2210,7 @@ class Dialogs:
         if not response:
             return cls.show_positions_dialog(player)
 
-        pos = DataBase.load_admin_position(player, int(list_item) + 1)
+        pos = DataBase.load_admin_position(player, input_text)
         player.set_pos(pos.x, pos.y, pos.z)
         player.set_facing_angle(pos.rotation)
         player.set_camera_behind()

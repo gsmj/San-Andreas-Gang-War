@@ -16,9 +16,9 @@
         "lag_compensation_mode": 1,
         "map": "Loading..",
         "mode": "Loading..",
-        "nametag_draw_radius": 30.0,
+        "nametag_draw_radius": 20.0,
         "player_marker_draw_radius": 14.0,
-        "player_marker_mode": 2,
+        "player_marker_mode": 1,
         "time": 12,
         "use_all_animations": false,
         "use_chat_radius": true,
@@ -69,14 +69,14 @@
         "player_timeout": 10000,
         "port": 7777,
         "public_addr": "",
-        "stream_radius": 200.0,
+        "stream_radius": 300.0,
         "stream_rate": 1000,
         "time_sync_rate": 30000,
         "use_lan_mode": false
     },
     "password": "",
     "pawn": {
-        "legacy_plugins": ["streamer.so", "PySAMP.so", "DriftPointsCounter.so"],
+        "legacy_plugins": ["streamer", "PySAMP", "DriftPointsCounter"],
         "main_scripts": [
             "empty"
         ]
