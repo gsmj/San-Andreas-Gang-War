@@ -120,6 +120,8 @@ class TextDraws:
         cls.commands_bottom[1] = TextDraw.create(70.000000, 435.000000, "/w - Weapons")
         cls.commands_bottom[2] = TextDraw.create(150.000000, 435.000000, "/v - Vehicles")
         cls.commands_bottom[3] = TextDraw.create(230.000000, 435.000000, "/sm - Set mode")
+        cls.commands_bottom[4] = TextDraw.create(150.000000, 425.000000, "/t - Teleport")
+        cls.commands_bottom[5] = TextDraw.create(230.000000, 425.000000, "/vt - Tuning")
         for td in cls.commands_bottom.values():
             td.font(2)
             td.letter_size(0.250000, 1.000000)
@@ -166,4 +168,4 @@ class TextDraws:
         cls.fps_and_ping[0].set_proportional(True)
         cls.fps_and_ping[0].set_selectable(False)
 
-        return print(f"Created: TextDraw (server)")
+        return print(f"Created: TextDraws (server)")

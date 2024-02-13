@@ -31,8 +31,9 @@ from .gang import gangs, GangZoneData, Gang
 from .textdraws import TextDraws
 from .version import __version__
 from .database import DataBase
-from .vehicle import Vehicle, VehicleData, VehicleTypes
+from .vehicle import Vehicle, VehicleData, VehicleTypes, VehicleComponents
 from .playerdata import *
+from .fun.math import MathTest
 from math import sqrt
 import random
 import time
@@ -151,6 +152,10 @@ class Player(BasePlayer):
         self.give_weapon(self.gun_slots.assault_rifle, 100)
         self.give_weapon(self.gun_slots.long_rifle, 100)
 
+    def update_vehicle_inst(self, vehice: Vehicle) -> None:
+        self.vehicle.inst = vehice
+        return
+
     def kick_player(self, player: "Player") -> None:
         player = self.from_registry_native(player)
         Dialogs.show_kick_dialog(player)
@@ -266,7 +271,7 @@ class Player(BasePlayer):
         return int(res)
 
     def create_drift_counter(self) -> dict[int, "PlayerTextDraw"]:
-        self.drift_counter[1] = PlayerTextDraw.create(self, 320.000000, 395.000000, "Drift Counter")
+        self.drift_counter[1] = PlayerTextDraw.create(self, 320.000000, 375.000000, "Drift Counter")
         self.drift_counter[1].alignment(2)
         self.drift_counter[1].background_color(255)
         self.drift_counter[1].letter_size(0.500000, 1.000000)
@@ -274,14 +279,14 @@ class Player(BasePlayer):
         self.drift_counter[1].color(-1)
         self.drift_counter[1].set_outline(1)
         self.drift_counter[1].set_proportional(True)
-        self.drift_counter[2] = PlayerTextDraw.create(self, 250.000000, 405.000000, "Cash: ~g~0")
+        self.drift_counter[2] = PlayerTextDraw.create(self, 250.000000, 385.000000, "Cash: ~g~0")
         self.drift_counter[2].background_color(255)
         self.drift_counter[2].font(2)
         self.drift_counter[2].letter_size(0.200000, 1.000000)
         self.drift_counter[2].color(-1)
         self.drift_counter[2].set_outline(1)
         self.drift_counter[2].set_proportional(True)
-        self.drift_counter[3] = PlayerTextDraw.create(self, 250.000000, 415.000000, "Score: ~y~0")
+        self.drift_counter[3] = PlayerTextDraw.create(self, 250.000000, 395.000000, "Score: ~y~0")
         self.drift_counter[3].background_color(255)
         self.drift_counter[3].font(2)
         self.drift_counter[3].letter_size(0.200000, 1.000000)
@@ -289,7 +294,7 @@ class Player(BasePlayer):
         self.drift_counter[3].set_outline(1)
         self.drift_counter[3].set_outline(1)
         self.drift_counter[3].set_proportional(True)
-        self.drift_counter[4] = PlayerTextDraw.create(self, 250.000000, 425.000000, "Combo: ~r~x1")
+        self.drift_counter[4] = PlayerTextDraw.create(self, 250.000000, 405.000000, "Combo: ~r~x1")
         self.drift_counter[4].background_color(255)
         self.drift_counter[4].font(2)
         self.drift_counter[4].letter_size(0.200000, 1.000000)
@@ -344,8 +349,12 @@ class Player(BasePlayer):
     def send_notification_message(self, message: str) -> None:
         return self.send_client_message(Colors.white, f"{message}")
 
-    def send_debug_message(self, message: str) -> None:
-        return self.send_client_message(Colors.light_grey, f"DEBUG: {message}")
+    def send_debug_message(self, event: str, message: str) -> None:
+        if DEBUG:
+            self.send_client_message(Colors.ad, "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+            self.send_client_message(Colors.blue, f"{event}")
+            self.send_client_message(Colors.light_grey, f"{message}")
+            self.send_client_message(Colors.ad, "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
     def send_report_message(self, author: "Player", message: str) -> None:
         for player in self._registry.values():
@@ -362,9 +371,9 @@ class Player(BasePlayer):
                 return key, value
 
     def remove_unused_vehicle(self):
-        if self.vehicle.id != ID_NONE:
-            veh = Vehicle.get_from_registry(self.vehicle.id)
-            Vehicle.remove_unused_player_vehicle(veh)
+        if self.vehicle.inst:
+            Vehicle.remove_unused_player_vehicle(self.vehicle.inst)
+            self.vehicle.inst = None
 
     def get_zone_name(self, x: float, y: float):
         return call_remote_function("GetMapZoneAtPoint2D", x, y)
@@ -479,6 +488,7 @@ class Player(BasePlayer):
 
     def enable_gangwar_mode(self, first_show: bool = True):
         self.show_bottom_commands()
+        self.remove_unused_vehicle()
         self.set_pos(self.gang.spawn_pos[0], self.gang.spawn_pos[1], self.gang.spawn_pos[2])
         self.set_camera_behind()
         self.set_interior(self.gang.interior_id)
@@ -529,6 +539,7 @@ class Player(BasePlayer):
 
     def enable_freeroam_mode(self):
         self.show_bottom_commands()
+        self.remove_unused_vehicle()
         self.set_camera_behind()
         self.set_interior(0)
         self.set_color_ex(randint(0, 16777215))
@@ -552,6 +563,7 @@ class Player(BasePlayer):
             0, 0, 0, 0, 0, 0)
 
     def enable_jail_mode(self):
+        self.remove_unused_vehicle()
         self.set_skin(167)
         self.set_team(254)
         self.set_color_ex(Colors.jail)
@@ -605,7 +617,7 @@ class Player(BasePlayer):
     def set_checkpoint_to_gangzone(self, x, y, z) -> None:
         return self.set_checkpoint(x, y, z, 1.0)
 
-    def set_data_after_login(self, player_db: "Player") -> None:
+    def set_data_after_login(self, player_db: "Player") -> None: # Login
         player_settings = DataBase.get_player_settings(self)
         self.password = player_db.password
         self.email = player_db.email
@@ -641,6 +653,7 @@ class Player(BasePlayer):
             disabled_ping_td=player_settings.disabled_ping_td,
             disabled_global_chat_gw=player_settings.disabled_global_chat_gw
         )
+        self.play_sound(1052, x=0.0, y=0.0, z=0.0)
         self.set_max_gun_skill()
         self.reset_money()
         self.set_score(self.score)
@@ -756,15 +769,16 @@ class Player(BasePlayer):
     # Handle блок.
 
     def on_connect_handle(self) -> None:
-        self.send_debug_message(f"on_connect_handle | Inst: {self}")
+        self.send_debug_message("on_connect_handle", f"Player: {self}")
         if self.is_connected():
             for i in range(25):
                 self.send_notification_message(" ")
 
             self.toggle_clock(False)
+            self.play_sound(1062, x=0.0, y=0.0, z=0.0)
             self.send_notification_message(f"Добро пожаловать на сервер {{{Colors.cmd_hex}}}{ServerInfo.name_short}{{{Colors.white_hex}}}!")
-            self.send_notification_message(f"Последняя версия: {{{Colors.cmd_hex}}}{__version__}{{{Colors.white_hex}}}!")
-            self.send_notification_message(f"Created by: {{{Colors.vagos_hex}}}Ykpauneu{{{Colors.white_hex}}}& {{{Colors.rifa_hex}}}Rein.{{{Colors.white_hex}}}!")
+            self.send_notification_message(f"Версия: {{{Colors.cmd_hex}}}{__version__}{{{Colors.white_hex}}}!")
+            self.send_notification_message(f"Created by: {{{Colors.vagos_hex}}}Ykpauneu{{{Colors.white_hex}}} & {{{Colors.rifa_hex}}}Rein.{{{Colors.white_hex}}}!")
             self.show_server_logotype()
             self.show_ping_textdraw()
             self.timers.every_sec = set_timer(self.every_second, 1000, True)
@@ -782,9 +796,8 @@ class Player(BasePlayer):
         if self.vip.is_random_clist_enabled:
             kill_timer(self.vip.random_clist_timer_id)
 
-        if self.vehicle.id != ID_NONE:
-            veh = Vehicle.get_from_registry(self.vehicle.id)
-            veh.set_owner(NO_VEHICLE_OWNER)
+        if self.vehicle.inst:
+            self.vehicle.inst.set_owner(NO_VEHICLE_OWNER)
 
         kill_timer(self.timers.every_sec)
         if self.is_data.logged:
@@ -831,13 +844,13 @@ class Player(BasePlayer):
         return self.delete_registry(self)
 
     def on_request_class_handle(self, class_id: int) -> None:
-        self.send_debug_message(f"on_request_class_handle | Inst: {self} | Class: {class_id}")
+        self.send_debug_message("on_request_class_handle", f"Player: {self} | Class: {class_id}")
         self.kick_if_not_logged()
         self.spawn()
         return True
 
     def on_spawn_handle(self) -> None:
-        self.send_debug_message(f"on_spawn_handle | Inst: {self} | Mode: {self.get_virtual_world()} | Int {self.get_interior()}")
+        self.send_debug_message("on_spawn_handle", f"Player: {self} | Mode: {self.get_virtual_world()} | Interior {self.get_interior()}")
         if self.mode == ServerWorldIDs.gangwar_world or self.mode == ServerWorldIDs.gangwar_world:
             return self.enable_gangwar_mode()
 
@@ -851,7 +864,7 @@ class Player(BasePlayer):
             return self.enable_jail_mode()
 
     def on_death_handle(self, killer: "Player", reason: int) -> None:
-        self.send_debug_message(f"on_death_handle | Inst: {self} | Killer: {killer}")
+        self.send_debug_message("on_death_handle", f"Player: {self} | Killer: {killer}")
         self.kick_if_not_logged()
         self.deaths += 1
         if self.mode == ServerWorldIDs.gangwar_world or self.mode == ServerWorldIDs.gangwar_world:
@@ -885,6 +898,9 @@ class Player(BasePlayer):
 
     def on_text_handle(self, text: str) -> False:
         self.kick_if_not_logged()
+        if int(text) == MathTest.correct_answer:
+            return MathTest.send_winner_message(self)
+
         if self.is_data.muted:
             self.set_chat_bubble("Пытается что-то сказать.", Colors.red, 20.0, 10000)
             return self.send_error_message("Доступ в чат заблокирован!")
@@ -1021,35 +1037,34 @@ class Player(BasePlayer):
             return Dialogs.show_mn_dialog(self)
 
         if self.get_state() == PLAYER_STATE_DRIVER and old_keys == 1:
-            vehicle = Vehicle.get_from_registry(self.get_vehicle_id())
-            if vehicle.engine == 1:
-                vehicle.engine = 0
-            else:
-                vehicle.engine = 1
+            if self.vehicle.inst.is_car:
+                if self.vehicle.inst.engine == 1:
+                    self.vehicle.inst.engine = 0
+                else:
+                    self.vehicle.inst.engine = 1
 
-            self.update_speedometer_sensors(vehicle)
-            return vehicle.set_params_ex(
-                vehicle.engine,
-                vehicle.lights,
-                0,
-                0,
-                0,
-                0,
-                0
-            )
+                self.update_speedometer_sensors(self.vehicle.inst)
+                return self.vehicle.inst.set_params_ex(
+                    self.vehicle.inst.engine,
+                    self.vehicle.inst.lights,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                )
 
         if (self.get_state() == PLAYER_STATE_DRIVER) and (old_keys == 4):
-            if not self.get_vehicle_id() in NoEngineVehicleIDs.ids:
-                vehicle = Vehicle.get_from_registry(self.get_vehicle_id())
-                if vehicle.lights == 1:
-                    vehicle.lights = 0
+            if self.vehicle.inst.is_car:
+                if self.vehicle.inst.lights == 1:
+                    self.vehicle.inst.lights = 0
                 else:
-                    vehicle.lights = 1
+                    self.vehicle.inst.lights = 1
 
-                self.update_speedometer_sensors(vehicle)
-                return vehicle.set_params_ex(
-                    vehicle.engine,
-                    vehicle.lights,
+                self.update_speedometer_sensors(self.vehicle.inst)
+                return self.vehicle.inst.set_params_ex(
+                    self.vehicle.inst.engine,
+                    self.vehicle.inst.lights,
                     0,
                     0,
                     0,
@@ -1061,23 +1076,43 @@ class Player(BasePlayer):
         if new_state == PLAYER_STATE_DRIVER:
             self.send_notification_message(f"Чтобы завести авто используйте {{{Colors.cmd_hex}}}LCTRL{{{Colors.white_hex}}}.")
             vehicle = Vehicle.get_from_registry(self.get_vehicle_id())
-            self.send_debug_message(f"on_state_change_handle | Inst: {self} | Veh id: {vehicle.id} | In")
-            if vehicle.get_model() not in NoEngineVehicleIDs.ids:
-                self.vehicle.last_id = vehicle.id
+            self.update_vehicle_inst(vehicle)
+            self.send_debug_message("on_state_change_handle", f"Player: {self} | Vehicle: {self.vehicle.inst.id} | In")
+            if self.vehicle.inst.is_car:
                 self.create_speedometer()
                 self.show_speedometer()
-                self.vehicle_speedometer[5] = set_timer(self.update_speedometer_velocity, 200, True, vehicle)
+                self.vehicle_speedometer[5] = set_timer(self.update_speedometer_velocity, 200, True, self.vehicle.inst)
                 if self.mode == ServerWorldIDs.freeroam_world:
                     self.create_drift_counter()
+            else:
+                return self.vehicle.inst.set_params_ex(
+                    1,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                )
 
         if new_state == PLAYER_STATE_ONFOOT and old_state == PLAYER_STATE_DRIVER:
-            vehicle = Vehicle.get_from_registry(self.vehicle.last_id)
-            self.send_debug_message(f"on_state_change_handle | Inst: {self} | Veh id: {vehicle.id} | Out")
-            if vehicle.get_model() not in NoEngineVehicleIDs.ids:
+            self.send_debug_message("on_state_change_handle", f"Player: {self} | Vehicle: {self.vehicle.inst.id} | Out")
+            if self.vehicle.inst.is_car:
                 kill_timer(self.vehicle_speedometer[5])
                 self.hide_speedometer()
                 if self.mode == ServerWorldIDs.freeroam_world:
                     self.destroy_drift_counter()
+
+            else:
+                return self.vehicle.inst.set_params_ex(
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0,
+                    0
+                )
 
     def on_click_textdraw_handle(self, clicked: TextDraw) -> None:
         if clicked.id == TextDraws.class_selection_td[0].id: # Left
@@ -1117,7 +1152,7 @@ class Player(BasePlayer):
 
     def on_drift_update_handle(self, value: int, combo: int, flag_id: int, distance: float, speed: float) -> None:
         if self.mode == ServerWorldIDs.freeroam_world:
-            if not self.time.afk >= 1:
+            if not self.time.afk >= 1 and self.vehicle.inst.is_car:
                 return self.update_drift_counter(value)
 
     def on_end_drift_handle(self,  value: int, combo: int, reason: int) -> None:
@@ -1317,7 +1352,7 @@ class Dialogs:
         return Dialog.create(1, f"{ServerInfo.name_short} | E-mail", f"Вы можете указать Ваш e-mail\nВ случае потери доступа к аккаунту, Вы сможете получить код восстановления\nВведите почту:", "Ок", "Позже",on_response=cls.email_response).show(player)
 
     @classmethod
-    def email_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+    def email_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None: # Register
         player = Player.from_registry_native(player)
         if not response:
             player.email = ""
@@ -1330,6 +1365,7 @@ class Dialogs:
 
             player.email = input_text
 
+        player.play_sound(1052, x=0.0, y=0.0, z=0.0)
         player.pin = ""
         player.is_data.logged = True
         player.registration_ip = player.get_ip()
@@ -1373,17 +1409,11 @@ class Dialogs:
         return player.enable_gangwar_mode()
 
     @classmethod
-    def show_stats_dialog(cls, player: Player, player_id: int = None) -> Dialog:
-        player = Player.from_registry_native(player)
-        if player_id is None:
-            player_stats = player
-
-        else:
-            player_stats = Player.from_registry_native(player_id)
-
-        key, value = player.get_gang_rang()
-        ratio = player.kills / player.deaths if player.kills and player.deaths != 0 else 0.0
-        level = int(sqrt(player.score) / 2)
+    def show_stats_dialog(cls, show_to: Player, player_id: int = None) -> Dialog:
+        player_stats = Player.from_registry_native(player_id)
+        key, value = player_stats.get_gang_rang()
+        ratio = player_stats.kills / player_stats.deaths if player_stats.kills and player_stats.deaths != 0 else 0.0
+        level = int(sqrt(player_stats.score) / 2)
         next_lvl_exp = int((2 * ((level + 1))) ** 2)
         return Dialog.create(
             0,
@@ -1392,7 +1422,7 @@ class Dialogs:
                 f"Ник:\t\t\t\t{player_stats.get_name()}\n"
                 f"Уровень:\t\t\t{{{Colors.cmd_hex}}}{level}{{{Colors.dialog_hex}}} ({player_stats.score}/{next_lvl_exp})\n"
                 f"Счёт:\t\t\t\t{{{Colors.cmd_hex}}}{player_stats.score}{{{Colors.dialog_hex}}}\n"
-                f"Вирт:\t\t\t\t{{{Colors.green_hex}}}{player_stats.money}${{{Colors.dialog_hex}}}\n"
+                f"Баланс:\t\t\t{{{Colors.green_hex}}}{player_stats.money}${{{Colors.dialog_hex}}}\n"
                 f"Донат:\t\t\t\t{{{Colors.cmd_hex}}}{player_stats.donate}{{{Colors.dialog_hex}}}\n"
                 f"Ранг:\t\t\t\t{value} ({{{Colors.green_hex}}}{player_stats.kills}{{{Colors.dialog_hex}}}/{key})\n"
                 f"Группировка:\t\t\t{{{player_stats.gang.color_hex}}}{player_stats.gang.gang_name}{{{Colors.dialog_hex}}}\n"
@@ -1405,7 +1435,7 @@ class Dialogs:
                 f"Выдан мут:\t\t\t{{{Colors.cmd_hex}}}{'Да' if player_stats.is_data.muted else 'Нет'}{{{Colors.dialog_hex}}}"
             ),
             "Закрыть",
-            "").show(player)
+            "").show(Player.from_registry_native(show_to))
 
     @classmethod
     def show_gangzone_choice_dialog(cls, player: Player, turf_id: int) -> Dialog:
@@ -1517,7 +1547,7 @@ class Dialogs:
             return
 
         if list_item == 0:
-            return cls.show_stats_dialog(player)
+            return cls.show_stats_dialog(player, player_id=player.id)
 
         if list_item == 1:
             return cls.show_commands_list_dialog(player)
@@ -1543,7 +1573,7 @@ class Dialogs:
         return Dialog.create(
             2,
             "Список команд",
-            "1. Личные команды\n2. Общие команды\n3. GangWar команды\n4. Freeroam команды\n5. VIP команды",
+            "1. Общие команды\n2. GangWar команды\n3. Freeroam команды\n4. VIP команды",
             "Ок",
             "Назад",
             on_response=cls.commands_list_response
@@ -1557,16 +1587,6 @@ class Dialogs:
 
         if list_item == 0:
             return Dialog.create(
-                1, "Личные настройки",
-                (
-                    f"{'Выключить' if player.is_data.disabled_fps_and_ping_td else 'Включить'} счётчик FPS & PING"
-                ),
-                "Ок",
-                "Закрыть"
-            ).show(player)
-
-        if list_item == 1:
-            return Dialog.create(
                 0, "Общие команды",
                 (
                     f"{{{Colors.cmd_hex}}}/sms\t\t{{{Colors.dialog_hex}}}Отправка SMS\n"
@@ -1579,7 +1599,7 @@ class Dialogs:
                 "Закрыть",
                 "").show(player)
 
-        if list_item == 2:
+        if list_item == 1:
             return Dialog.create(
                 0, "GangWar команды",
                 (
@@ -1597,7 +1617,7 @@ class Dialogs:
                 "Закрыть",
                 "").show(player)
 
-        if list_item == 3:
+        if list_item == 2:
             return Dialog.create(
                 0, "Freeroam команды",
                 (
@@ -1607,12 +1627,17 @@ class Dialogs:
                     f"{{{Colors.cmd_hex}}}/infernus\t{{{Colors.dialog_hex}}}Покупка Ifernus\n"
                     f"{{{Colors.cmd_hex}}}/bullet\t{{{Colors.dialog_hex}}}Покупка Bullet\n"
                     f"{{{Colors.cmd_hex}}}/sultan\t{{{Colors.dialog_hex}}}Покупка Sultan\n"
+                    f"{{{Colors.cmd_hex}}}/teleport\t{{{Colors.dialog_hex}}}Телепорт\n"
+                    f"{{{Colors.cmd_hex}}}/heal\t{{{Colors.dialog_hex}}}Восстановление здоровья\n"
+                    f"{{{Colors.cmd_hex}}}/armour\t{{{Colors.dialog_hex}}}Получение брони\n"
+                    f"{{{Colors.cmd_hex}}}/flip\t{{{Colors.dialog_hex}}}Перевернуть транспорт\n"
+                    f"{{{Colors.cmd_hex}}}/tuning\t{{{Colors.dialog_hex}}}Тюнинг транспорта\n"
                 ),
                 "Закрыть",
                 "").show(player)
 
 
-        if list_item == 4:
+        if list_item == 3:
             return Dialog.create(
                 0, "VIP команды",
                 (
@@ -1631,7 +1656,8 @@ class Dialogs:
         return Dialog.create(
             2,
             "Выбрать режим",
-            "GangWar\nDeathmatch (Indev)\nFreeroam\nMinigames (Indev)",
+            "GangWar\nFreeroam",
+            # "GangWar\nDeathmatch (Indev)\nFreeroam\nMinigames (Indev)",
             "Ок",
             "",
             on_response=cls.select_mode_response
@@ -1652,10 +1678,10 @@ class Dialogs:
             player.send_notification_message(f"Вы выбрали режим {{{Colors.cmd_hex}}}GangWar{{{Colors.white_hex}}}!")
             return cls.show_gang_choice_dialog(player)
 
-        if list_item == 1:
-            ...
+        # if list_item == 1:
+        #     ...
 
-        if list_item == 2:
+        if list_item == 1:
             if player.check_player_mode([ServerWorldIDs.freeroam_world]):
                 return player.send_error_message("Вы уже выбрали этот режим!")
 
@@ -1973,43 +1999,43 @@ class Dialogs:
         if list_item == 0: # Lowrider
             for id, veh in VehicleData.data.items():
                 if veh[0] == VehicleTypes.LOWRIDER:
-                    veh_str += f"{{{Colors.dialog_hex}}}{id}\t{{{Colors.cmd_hex}}}{veh[1]}\t{{{Colors.green_hex}}}{veh[2]}${{{Colors.dialog_hex}}}\n"
+                    veh_str += f"{{{Colors.dialog_hex}}}{id}\t{{{Colors.cmd_hex}}}{veh[1]}\t{{{Colors.green_hex}}}{veh[2]}$\n"
 
         if list_item == 1: # Offroad
             veh_type = VehicleTypes.OFFROAD
             for id, veh in VehicleData.data.items():
                 if veh[0] == VehicleTypes.OFFROAD:
-                    veh_str += f"{{{Colors.dialog_hex}}}{id}\t{{{Colors.cmd_hex}}}{veh[1]}\t{{{Colors.green_hex}}}{veh[2]}${{{Colors.dialog_hex}}}\n"
+                    veh_str += f"{{{Colors.dialog_hex}}}{id}\t{{{Colors.cmd_hex}}}{veh[1]}\t{{{Colors.green_hex}}}{veh[2]}$\n"
 
         if list_item == 2: # Services
             veh_type = VehicleTypes.SERVICES
             for id, veh in VehicleData.data.items():
                 if veh[0] == VehicleTypes.SERVICES:
-                    veh_str += f"{{{Colors.dialog_hex}}}{id}\t{{{Colors.cmd_hex}}}{veh[1]}\t{{{Colors.green_hex}}}{veh[2]}${{{Colors.dialog_hex}}}\n"
+                    veh_str += f"{{{Colors.dialog_hex}}}{id}\t{{{Colors.cmd_hex}}}{veh[1]}\t{{{Colors.green_hex}}}{veh[2]}$\n"
 
         if list_item == 3: # Sedan
             veh_type = VehicleTypes.SEDAN
             for id, veh in VehicleData.data.items():
                 if veh[0] == VehicleTypes.SEDAN:
-                    veh_str += f"{{{Colors.dialog_hex}}}{id}\t{{{Colors.cmd_hex}}}{veh[1]}\t{{{Colors.green_hex}}}{veh[2]}${{{Colors.dialog_hex}}}\n"
+                    veh_str += f"{{{Colors.dialog_hex}}}{id}\t{{{Colors.cmd_hex}}}{veh[1]}\t{{{Colors.green_hex}}}{veh[2]}$\n"
 
         if list_item == 4: # Sport
             veh_type = VehicleTypes.SPORT
             for id, veh in VehicleData.data.items():
                 if veh[0] == VehicleTypes.SPORT:
-                    veh_str += f"{{{Colors.dialog_hex}}}{id}\t{{{Colors.cmd_hex}}}{veh[1]}\t{{{Colors.green_hex}}}{veh[2]}${{{Colors.dialog_hex}}}\n"
+                    veh_str += f"{{{Colors.dialog_hex}}}{id}\t{{{Colors.cmd_hex}}}{veh[1]}\t{{{Colors.green_hex}}}{veh[2]}$\n"
 
         if list_item == 5: # Universal
             veh_type = VehicleTypes.UNIVERSAL
             for id, veh in VehicleData.data.items():
                 if veh[0] == VehicleTypes.UNIVERSAL:
-                    veh_str += f"{{{Colors.dialog_hex}}}{id}\t{{{Colors.cmd_hex}}}{veh[1]}\t{{{Colors.green_hex}}}{veh[2]}${{{Colors.dialog_hex}}}\n"
+                    veh_str += f"{{{Colors.dialog_hex}}}{id}\t{{{Colors.cmd_hex}}}{veh[1]}\t{{{Colors.green_hex}}}{veh[2]}$\n"
 
         if list_item == 6: # Uniqe
             veh_type = VehicleTypes.UNIQE
             for id, veh in VehicleData.data.items():
                 if veh[0] == VehicleTypes.UNIQE:
-                    veh_str += f"{{{Colors.dialog_hex}}}{id}\t{{{Colors.cmd_hex}}}{veh[1]}\t{{{Colors.green_hex}}}{veh[2]}${{{Colors.dialog_hex}}}\n"
+                    veh_str += f"{{{Colors.dialog_hex}}}{id}\t{{{Colors.cmd_hex}}}{veh[1]}\t{{{Colors.green_hex}}}{veh[2]}$\n"
 
         return Dialog.create(
             5, veh_type,
@@ -2044,5 +2070,462 @@ class Dialogs:
             player.mode
         )
         player_veh.set_info(owner=player.get_name())
-        player.vehicle.id = player_veh.id
-        player.put_in_vehicle(player.vehicle.id, 0)
+        player_veh.add_component(VehicleComponents.nitro_x10)
+        player.update_vehicle_inst(player_veh)
+        player.put_in_vehicle(player.vehicle.inst.id, 0)
+
+    @classmethod
+    def show_teleports_dialog(cls, player: Player) -> None:
+        player = Player.from_registry_native(player)
+        teleports = ""
+        for name in FreeroamTeleports.teleports.keys():
+            teleports += f"{name}\n"
+
+        return Dialog.create(
+            2,
+            "Телепорт",
+            teleports,
+            "Ок",
+            "Закрыть",
+            on_response=cls.teleport_response
+        ).show(player)
+
+    @classmethod
+    def teleport_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            return
+
+        x, y, z, rotation = FreeroamTeleports.teleports[input_text]
+        if player.is_in_any_vehicle():
+            player.vehicle.inst.set_position(x, y, z)
+            player.vehicle.inst.set_z_angle(rotation)
+        else:
+            player.set_facing_angle(rotation)
+            player.set_pos(x, y, z)
+            player.set_camera_behind()
+
+        return player.send_notification_message(f"Вы были перемещены на позицию {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}.")
+
+    @classmethod
+    def show_positions_dialog(cls, player: Player) -> None:
+        player = Player.from_registry_native(player)
+        return Dialog.create(
+            2,
+            "Меню позиций Администратора",
+            "Создать позицию\nУдалить позицию\nСписок позиций",
+            "Ок",
+            "Закрыть",
+            on_response=cls.position_response
+        ).show(player)
+
+    @classmethod
+    def position_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            return
+
+        if list_item == 0:
+            return cls.show_create_position_dialog(player)
+
+        if list_item == 1:
+            return cls.show_delete_position_dialog(player)
+
+        if list_item == 2:
+            return cls.show_list_position_dialog(player)
+
+    @classmethod
+    def show_create_position_dialog(cls, player: Player) -> None:
+        player = Player.from_registry_native(player)
+        return Dialog.create(
+            1,
+            "Создании позиции",
+            "Введите название позиции:",
+            "Ок",
+            "Назад",
+            on_response=cls.create_position_response
+        ).show(player)
+
+    @classmethod
+    def create_position_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            return cls.show_positions_dialog(player)
+
+        if len(input_text) == 0 or len(input_text) > 32:
+            player.send_error_message("Название позиции должно быть больше 0 и меньше 32 символов!")
+            return cls.show_positions_dialog(player)
+
+        DataBase.create_admin_pos(player, input_text, *player.get_pos(), player.get_facing_angle())
+        return player.send_notification_message(f"Вы создали позицию: {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}.")
+
+    @classmethod
+    def show_delete_position_dialog(cls, player: Player) -> None:
+        player = Player.from_registry_native(player)
+        return Dialog.create(
+            1,
+            "Удаление позиции",
+            "Введите ID позиции:",
+            "Ок",
+            "Назад",
+            on_response=cls.delete_position_response
+        ).show(player)
+
+    @classmethod
+    def delete_position_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            return cls.show_positions_dialog(player)
+
+        try:
+            int_text = int(input_text)
+        except:
+            player.send_error_message("Укажите целое число!")
+            return Dialogs.show_delete_position_dialog(player)
+
+        pos_id = DataBase.load_admin_position(player, int_text)
+        if not pos_id:
+            player.send_error_message("Не удалось найти ID позиции!")
+            return cls.show_delete_position_dialog(player)
+
+        player.send_notification_message(f"Вы удалили позицию: {{{Colors.cmd_hex}}}{pos_id.name}{{{Colors.white_hex}}}.")
+        return DataBase.delete_admin_position(player, pos_id.uid)
+
+    @classmethod
+    def show_list_position_dialog(cls, player: Player) -> None:
+        player = Player.from_registry_native(player)
+        dialog_pos = ""
+        for pos in DataBase.load_admin_positions(player):
+            dialog_pos += f"{{{Colors.dialog_hex}}}{pos.uid}\t{{{Colors.cmd_hex}}}{pos.name}\n"
+
+        return Dialog.create(
+            5,
+            "Список позиций",
+            (
+                "ID\tНазвание\n"
+                f"{dialog_pos}"
+            ),
+            "Телепорт",
+            "Назад",
+            on_response=cls.list_position_response
+        ).show(player)
+
+    @classmethod
+    def list_position_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            return cls.show_positions_dialog(player)
+
+        pos = DataBase.load_admin_position(player, int(list_item) + 1)
+        player.set_pos(pos.x, pos.y, pos.z)
+        player.set_facing_angle(pos.rotation)
+        player.set_camera_behind()
+        player.send_notification_message(f"Вы переместились в позицию: {{{Colors.cmd_hex}}}{pos.name}{{{Colors.white_hex}}}.")
+
+    @classmethod
+    def show_tuning_dialog(cls, player: Player) -> None:
+        player = Player.from_registry_native(player)
+        return Dialog.create(
+            2, "Тюнинг транспорта",
+            (
+                "1. Покраска\n"
+                "2. Закись азота\n"
+                "3. Диски\n"
+                "4. Покрасочные работы\n"
+                "5. Спойлер\n"
+                "6. Передний бампер\n"
+                "7. Задний бампер\n"
+                "8. Гидравлика"
+            ),
+            "Ок",
+            "Закрыть",
+            on_response=cls.tuning_response
+        ).show(player)
+
+    @classmethod
+    def tuning_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            return
+
+        if list_item == 0:
+            player.send_notification_message("Укажите числа от 0 до 255 через запятую (17, 18)")
+            return Dialog.create(
+                1, "Покраска",
+                "Укажите цвета:",
+                "Ок",
+                "Назад",
+                on_response=cls.tuning_paint_response
+            ).show(player)
+
+        if list_item == 1:
+            return Dialog.create(
+                2, "Закись азота",
+                "Nitro X2\nNitro X5\nNitro X10",
+                "Ок",
+                "Назад",
+                on_response=cls.tuning_nitro_response
+            ).show(player)
+
+        if list_item == 2:
+            wheels_str = ""
+            for disk in VehicleComponents.wheels.keys():
+                wheels_str += f"{disk}\n"
+
+            return Dialog.create(
+                2, "Диски",
+                wheels_str,
+                "Ок",
+                "Назад",
+                on_response=cls.tuning_wheels_response
+            ).show(player)
+
+        if list_item == 3:
+            if player.vehicle.inst.get_model() not in VehicleComponents.paint_jobs:
+                player.send_error_message("Покрасочные работы недоступны для этого транспорта!")
+                return cls.show_tuning_dialog(player)
+
+            paint_str = ""
+            for paint_id in VehicleComponents.paint_jobs[player.vehicle.inst.get_model()]:
+                paint_str += f"Расцветка {paint_id}\n"
+
+            return Dialog.create(
+                2, "Покрасочные работы",
+                paint_str,
+                "Ок",
+                "Назад",
+                on_response=cls.tuning_paint_job_response
+            ).show(player)
+
+        if list_item == 4:
+            if player.vehicle.inst.get_model() not in VehicleComponents.spoilers:
+                player.send_error_message("Для этого транспорта нельзя установить спойлер!")
+                return cls.show_tuning_dialog(player)
+
+            spoiler_str = ""
+            for spoiler in VehicleComponents.spoilers[player.vehicle.inst.get_model()].keys():
+                spoiler_str += f"{spoiler}\n"
+
+            return Dialog.create(
+                2, "Спойлер",
+                spoiler_str,
+                "Ок",
+                "Назад",
+                on_response=cls.tuning_spoiler_response
+            ).show(player)
+
+        if list_item == 5:
+            if player.vehicle.inst.get_model() not in VehicleComponents.front_bumper:
+                player.send_error_message("Для этого транспорта нельзя установить передний бампер!")
+                return cls.show_tuning_dialog(player)
+
+            front_bumper_str = ""
+            for front_bumper in VehicleComponents.front_bumper[player.vehicle.inst.get_model()].keys():
+                front_bumper_str += f"{front_bumper}\n"
+
+            return Dialog.create(
+                2, "Передний бампер",
+                front_bumper_str,
+                "Ок",
+                "Назад",
+                on_response=cls.tuning_front_bumper_response
+            ).show(player)
+
+        if list_item == 6:
+            if player.vehicle.inst.get_model() not in VehicleComponents.rear_bumper:
+                player.send_error_message("Для этого транспорта нельзя установить задний бампер!")
+                return cls.show_tuning_dialog(player)
+
+            rear_bumper_str = ""
+            for rear_bumper in VehicleComponents.rear_bumper[player.vehicle.inst.get_model()].keys():
+                rear_bumper_str += f"{rear_bumper}\n"
+
+            return Dialog.create(
+                2, "Задний бампер",
+                rear_bumper_str,
+                "Ок",
+                "Назад",
+                on_response=cls.tuning_rear_bumper_response
+            ).show(player)
+
+        if list_item == 7:
+            return Dialog.create(
+                2, "Гидравлика",
+                "Установить\nУдалить",
+                "Ок",
+                "Назад",
+                on_response=cls.tuning_hydraulics_response
+            ).show(player)
+
+
+    @classmethod
+    def tuning_paint_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            return cls.show_tuning_dialog(player)
+
+        if not input_text:
+            player.send_error_message("Необходимо указать числа через запятую (17, 18)!")
+            return cls.show_tuning_dialog(player)
+
+        try:
+            input_text = input_text.split(", ")
+        except:
+            player.send_error_message("Необходимо указать числа через запятую (17, 18)!")
+            return cls.show_tuning_dialog(player)
+
+        try:
+            input_text[1]
+
+        except:
+            player.send_error_message("Укажите второй цвет от 0 до 255")
+            return cls.show_tuning_dialog(player)
+
+        if len(input_text[0]) < 0 or len(input_text[0]) > 255:
+            player.send_error_message("Укажите первый цвет от 0 до 255")
+            return cls.show_tuning_dialog(player)
+
+        if len(input_text[1]) < 0 or len(input_text[1]) > 255:
+            player.send_error_message("Укажите второй цвет от 0 до 255")
+            return cls.show_tuning_dialog(player)
+
+        try:
+            color_one = int(input_text[0])
+            color_two = int(input_text[1])
+        except:
+            player.send_error_message("Укажите целые числа!")
+            return cls.show_tuning_dialog(player)
+
+        player.vehicle.inst.change_color(color_one, color_two)
+        player.play_sound(1052, x=0.0, y=0.0, z=0.0)
+        return player.send_notification_message("Цвет успешно изменён!")
+
+    @classmethod
+    def tuning_nitro_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            return cls.show_tuning_dialog(player)
+
+        if list_item == 0:
+            player.vehicle.inst.add_component(VehicleComponents.nitro_x2)
+
+        if list_item == 1:
+            player.vehicle.inst.add_component(VehicleComponents.nitro_x5)
+
+        if list_item == 2:
+            player.vehicle.inst.add_component(VehicleComponents.nitro_x10)
+
+        player.play_sound(1052, x=0.0, y=0.0, z=0.0)
+        return player.send_notification_message(f"Установлено {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}!")
+
+    @classmethod
+    def tuning_wheels_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            return cls.show_tuning_dialog(player)
+
+        player.vehicle.inst.add_component(VehicleComponents.wheels[input_text])
+        player.play_sound(1052, x=0.0, y=0.0, z=0.0)
+        return player.send_notification_message(f"Установлены диски {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}!")
+
+    @classmethod
+    def tuning_paint_job_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            return cls.show_tuning_dialog(player)
+
+        model = player.vehicle.inst.get_model()
+        pj_int = int(input_text.split(" ")[1])
+        player.vehicle.inst.change_color(1, 1)
+        player.vehicle.inst.change_paintjob(VehicleComponents.paint_jobs[model][pj_int])
+        player.play_sound(1052, x=0.0, y=0.0, z=0.0)
+        return player.send_notification_message(f"Установлена покрасночная работа {{{Colors.cmd_hex}}}{pj_int}{{{Colors.white_hex}}}!")
+
+    @classmethod
+    def tuning_spoiler_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            return cls.show_tuning_dialog(player)
+
+        player.vehicle.inst.add_component(VehicleComponents.spoilers[player.vehicle.inst.get_model()][input_text])
+        player.play_sound(1052, x=0.0, y=0.0, z=0.0)
+        return player.send_notification_message(f"Установлен спойлер {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}!")
+
+    @classmethod
+    def tuning_front_bumper_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            return cls.show_tuning_dialog(player)
+
+        player.vehicle.inst.add_component(VehicleComponents.front_bumper[player.vehicle.inst.get_model()][input_text])
+        player.play_sound(1052, x=0.0, y=0.0, z=0.0)
+        return player.send_notification_message(f"Установлен передний бампер {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}!")
+
+    @classmethod
+    def tuning_rear_bumper_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            return cls.show_tuning_dialog(player)
+
+        player.vehicle.inst.add_component(VehicleComponents.rear_bumper[player.vehicle.inst.get_model()][input_text])
+        player.play_sound(1052, x=0.0, y=0.0, z=0.0)
+        return player.send_notification_message(f"Установлен задний бампер {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}!")
+
+    @classmethod
+    def tuning_hydraulics_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            return cls.show_tuning_dialog(player)
+
+        if list_item == 0:
+            player.vehicle.inst.add_component(VehicleComponents.hydraulics)
+            return player.send_notification_message(f"Гидравлика была {{{Colors.cmd_hex}}}установлена{{{Colors.white_hex}}}!")
+
+        if list_item == 1:
+            player.vehicle.inst.remove_component(VehicleComponents.hydraulics)
+            return player.send_notification_message(f"Гидравлика была {{{Colors.cmd_hex}}}удалена{{{Colors.white_hex}}}!")
+
+        player.play_sound(1052, x=0.0, y=0.0, z=0.0)
+
+    @classmethod
+    def show_vbuy_dialog(cls, player: Player) -> None:
+        player = Player.from_registry_native(player)
+        return Dialog.create(
+            2, "VIP транспорт",
+            "Hunter\nHydra\nAndromada\nRhino",
+            "Ок",
+            "Закрыть",
+            on_response=cls.vbuy_response
+        ).show(player)
+
+    @classmethod
+    def vbuy_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            return
+
+        if list_item == 0:
+            model_id = 425
+
+        if list_item == 1:
+            model_id = 520
+
+        if list_item == 2:
+            model_id = 592
+
+        if list_item == 3:
+            model_id = 432
+
+        player.remove_unused_vehicle()
+        player_veh = Vehicle.create(
+            model_id,
+            *player.get_pos(),
+            player.get_facing_angle(),
+            1,
+            1,
+            -1,
+            player.mode
+        )
+        player_veh.set_info(owner=player.get_name())
+        player.update_vehicle_inst(player_veh)
+        player.put_in_vehicle(player.vehicle.inst.id, 0)

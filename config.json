@@ -37,10 +37,10 @@
     },
     "language": "Loading..",
     "logging": {
-        "enable": false,
-        "log_chat": false,
-        "log_cookies": false,
-        "log_deaths": false,
+        "enable": true,
+        "log_chat": true,
+        "log_cookies": true,
+        "log_deaths": true,
         "log_queries": false,
         "log_sqlite": false,
         "log_sqlite_queries": false,
@@ -76,15 +76,15 @@
     },
     "password": "",
     "pawn": {
-        "legacy_plugins": ["streamer", "PySAMP", "DriftPointsCounter"],
+        "legacy_plugins": ["streamer.so", "PySAMP.so", "DriftPointsCounter.so"],
         "main_scripts": [
             "empty"
         ]
     },
     "rcon": {
         "allow_teleport": false,
-        "enable": false,
-        "password": "123456"
+        "enable": true,
+        "password": "SAGWompRCON13022024_1752"
     },
     "sleep": 5.0,
     "use_dyn_ticks": true,

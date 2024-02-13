@@ -1,6 +1,6 @@
 from dataclasses import dataclass, field
 from .consts import TIMER_ID_NONE, SLOT_ID_NONE, ID_NONE
-
+from .vehicle import Vehicle
 
 @dataclass
 class PlayerDrift:
@@ -81,5 +81,4 @@ class PlayerTemp:
 
 @dataclass
 class PlayerVehicle:
-    id: int = ID_NONE
-    last_id: int = ID_NONE
+    inst: "Vehicle" = None

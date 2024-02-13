@@ -17,6 +17,7 @@ from sqlalchemy import (
     Float,
     and_,
     func,
+    delete
 )
 from sqlalchemy.orm import (
     declarative_base,
@@ -128,6 +129,17 @@ class AdminLog(Base):
     reason = Column(String(252))
 
 
+class AdminSavedPositions(Base):
+    __tablename__ = "AdminSavedPositions"
+    uid = Column(Integer, Identity(), primary_key=True)
+    admin = Column(String(32))
+    name = Column(String(32))
+    x = Column(Float())
+    y = Column(Float())
+    z = Column(Float())
+    rotation = Column(Float())
+
+
 class DataBase():
     @classmethod
     def create_metadata(cls):
@@ -233,12 +245,12 @@ class DataBase():
             for i, gz in enumerate(DefaultGangZones.zones):
                 DataBase.create_gangzone(i, -1, Colors.white, gz[0], gz[1], gz[2], gz[3])
 
-            print(f"Created: GangZone (database)")
+            print(f"Created: GangZones (database)")
 
         for gz in DefaultGangZones.zones:
             Gangzone.create(gz[0], gz[1], gz[2], gz[3])
 
-        print(f"Created: GangZone (server)")
+        print(f"Created: GangZones (server)")
         for gz in DataBase.load_gangzones():
             if gz.gang_id != -1:
                 gangs[gz.gang_id].turfs.append(gz.id)
@@ -306,6 +318,40 @@ class DataBase():
         with cls.Session() as session:
             result = session.execute(select(Vehicle).order_by(Vehicle.uid))
             return result.scalars().all()
+
+    @classmethod
+    def create_admin_pos(cls, player: "Player", name: str, x: float, y: float, z: float, rotation: float) -> None:
+        with cls.Session() as session:
+            session.add(
+                AdminSavedPositions(
+                    admin=player.get_name(),
+                    name=name,
+                    x=x,
+                    y=y,
+                    z=z,
+                    rotation=rotation
+                )
+            )
+            session.commit()
+
+    @classmethod
+    def load_admin_positions(cls, player: "Player") -> AdminSavedPositions:
+        with cls.Session() as session:
+            result = session.execute(select(AdminSavedPositions).where(AdminSavedPositions.admin == player.get_name()))
+            return result.scalars().all()
+
+    @classmethod
+    def load_admin_position(cls, player: "Player", id: int) -> AdminSavedPositions:
+        with cls.Session() as session:
+            result = session.execute(select(AdminSavedPositions).where(and_(AdminSavedPositions.admin == player.get_name(), AdminSavedPositions.uid == id)))
+            return result.scalar()
+
+    @classmethod
+    def delete_admin_position(cls, player: "Player", id: int) -> AdminSavedPositions:
+        with cls.Session() as session:
+            session.execute(delete(AdminSavedPositions).where(and_(AdminSavedPositions.admin == player.get_name(), AdminSavedPositions.uid == id)))
+            session.commit()
+
 
     # @classmethod
     # def load_biggest_vehicle_id(cls) -> Vehicle:

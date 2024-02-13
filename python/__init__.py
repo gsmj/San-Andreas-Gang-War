@@ -10,7 +10,11 @@ from pysamp import (
     limit_global_chat_radius,
     show_player_markers,
     create_3d_text_label,
+    set_world_time,
+    send_client_message_to_all
 )
+from datetime import datetime
+from zoneinfo import ZoneInfo
 from pysamp.gangzone import Gangzone
 from pysamp.textdraw import TextDraw
 from pysamp.timer import set_timer
@@ -22,7 +26,7 @@ from pydpc.driftcounter.drift import Drift
 from pydpc.driftcounter import *
 from .libs.gang import gangs, DefaultGangZones, GangZoneData
 from .libs.player import Player
-from .libs.vehicle import Vehicle
+from .libs.vehicle import Vehicle, VehicleIDs
 from .libs.utils import *
 from .libs.database import DataBase
 from .libs.commands import *
@@ -30,6 +34,7 @@ from .libs.textdraws import TextDraws
 from .libs.objects import Objects
 from .libs.version import __version__
 from .libs.consts import NO_VEHICLE_OWNER
+from .libs.fun.math import MathTest
 import os
 import random
 encode()
@@ -39,10 +44,14 @@ def on_ready() -> None:
     register_callbacks()
     register_drift_callbacks()
     drift_set_global_check()
-    drift_set_update_delay(5)
+    drift_set_update_delay(8)
+    drift_set_start_end_delay(50)
+    drift_set_minimal_angle(15.5)
+    drift_set_minimal_speed(25.5)
+    drift_set_divider(100)
+    drift_set_damage_check()
     DataBase.create_metadata()
     DataBase.create_gangzones()
-    print(f"Created: GangZone (gang)")
     enable_stunt_bonus_for_all(False)
     manual_vehicle_engine_and_lights()
     disable_interior_enter_exits()
@@ -106,14 +115,16 @@ def on_ready() -> None:
     for id, value in Vehicle._registry.items():
         print(f"\tID: {id} | Inst: {value}")
 
-    print(f"Loaded {len(GangZoneData._registry.items())} gangzones")
-    print(f"Loaded {len(Vehicle._registry.items())} vehicles")
+    print(f"Loaded: {len(GangZoneData._registry.items())} gangzones")
+    print(f"Loaded: {len(Vehicle._registry.items())} vehicles")
     print(f"Loaded: {ServerInfo.name_short} (v{__version__})")
     print("Created by: Ykpauneu & Rein.")
+    time = datetime.now(tz=ZoneInfo("Europe/Moscow"))
+    ServerInfo.current_time = time
+    set_world_time(ServerInfo.current_time.hour)
     set_timer(every_second, 1000, True)
 
 def every_second():
-    change_name_cd = 15000
     for gangzone in GangZoneData._registry.values():
         if gangzone.capture_cooldown != 0:
             gangzone.capture_cooldown -= 1
@@ -132,11 +143,29 @@ def every_second():
             else:
                 Player.end_capture(gangzone)
 
-    if change_name_cd != 0:
-        change_name_cd -= 1
+    if ServerInfo.current_time.hour != datetime.now(tz=ZoneInfo("Europe/Moscow")).hour:
+        time = datetime.now(tz=ZoneInfo("Europe/Moscow"))
+        ServerInfo.current_time = time
+        set_world_time(ServerInfo.current_time.hour)
+        send_client_message_to_all(Colors.ad, "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
+        send_client_message_to_all(Colors.ad, f"Наш сайт: {{{Colors.link_hex}}}sanandreasonline.github.io")
+        send_client_message_to_all(Colors.ad, f"Наш Discord: {{{Colors.link_hex}}}discord.gg/yn2EcNJywH")
+        send_client_message_to_all(Colors.ad, f"Наш IP: {{{Colors.cmd_hex}}}213.226.126.237:7777")
+        send_client_message_to_all(Colors.ad, "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
 
-    else: send_rcon_command(f"name {random.choice(ServerInfo.name_timer)}")
-    change_name_cd = 15000
+    if ServerInfo.change_name_and_adverb != 0:
+        ServerInfo.change_name_and_adverb -= 1
+
+    else:
+        send_rcon_command(f"name {random.choice(ServerInfo.name_timer)}")
+        ServerInfo.change_name_and_adverb = 7200
+
+    if ServerInfo.send_math != 0:
+        ServerInfo.send_math -= 1
+
+    else:
+        MathTest.send_math_test()
+        ServerInfo.send_math = 1800
 
 @Player.on_connect
 @Player.using_registry
@@ -231,4 +260,11 @@ def on_player_end_drift(player: Player, value: int, combo: int, reason: int) -> 
 @Vehicle.on_death
 @Vehicle.using_registry
 def on_vehicle_death(vehicle: Vehicle, killer: Player) -> None:
+    killer = Player.from_registry_native(killer)
     vehicle.on_death_handle(killer)
+
+@Vehicle.on_damage_status_update
+@Vehicle.using_registry
+def on_vehicle_damage_status_update(vehicle: Vehicle, player: Player) -> None:
+    player = Player.from_registry_native(player)
+    vehicle.on_damage_status_handle(player)

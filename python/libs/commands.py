@@ -1,5 +1,5 @@
 from pysamp.commands import cmd
-from pysamp import send_client_message_to_all, set_world_time, create_vehicle
+from pysamp import send_client_message_to_all, set_world_time, is_player_admin
 from pysamp.dialog import Dialog
 from pysamp.timer import set_timer, kill_timer
 from .player import Player, Dialogs
@@ -19,7 +19,7 @@ from .database import DataBase
 from datetime import datetime as dt
 from zoneinfo import ZoneInfo
 import random
-from .vehicle import Vehicle
+from .vehicle import Vehicle, VehicleComponents
 from samp import SPECIAL_ACTION_USEJETPACK, PLAYER_STATE_SPECTATING # type: ignore
 
 @cmd(aliases=("menu", "mm", "help", "m"))
@@ -33,12 +33,29 @@ def mn(player: Player):
 
 @cmd
 @Player.using_registry
-def stats(player: Player):
+def stats(player: Player, player_id: int = None):
     player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    return Dialogs.show_stats_dialog(player)
+    if not player.admin.check_command_access(1):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    if player_id:
+        try:
+            target_id = int(player_id)
+
+        except:
+            return player.send_error_message("Игрок не найден!")
+
+    else:
+        target_id = player.id
+
+    target = Player.from_registry_native(target_id)
+    if not target.is_connected():
+        return player.send_error_message("Игрок не найден!")
+
+    return Dialogs.show_stats_dialog(player, player_id=target_id)
 
 @cmd
 @Player.using_registry
@@ -242,8 +259,7 @@ def vipinfo(player: Player):
             f"{{{Colors.bronze_hex}}}BRONZE VIP{{{Colors.dialog_hex}}}:\n"
             f"{{{Colors.cmd_hex}}}/vc\t\t{{{Colors.dialog_hex}}}VIP чат\n"
             f"{{{Colors.cmd_hex}}}/rclist\t\t{{{Colors.dialog_hex}}}Переливающийся цвет игрока\n"
-            f"{{{Colors.cmd_hex}}}/jp\t\t{{{Colors.dialog_hex}}}Покупка джетпака\n"
-            "Сохранения оружия в режиме GangWar\n\n"
+            f"{{{Colors.cmd_hex}}}/jp\t\t{{{Colors.dialog_hex}}}Покупка джетпака\n\n"
             f"{{{Colors.silver_hex}}}SILVER VIP{{{Colors.dialog_hex}}}:\n"
             f"{{{Colors.cmd_hex}}}/vbuy\t\t{{{Colors.dialog_hex}}}VIP транспорт\n\n"
             f"{{{Colors.gold_hex}}}GOLD VIP{{{Colors.dialog_hex}}}:\n"
@@ -271,12 +287,11 @@ def vc(player: Player, *message: str):
     if len(message) == 0:
         return player.send_error_message("Использование команды: /v message")
 
-    print(player.vip)
     vip_status = VIPData.names[player.vip.level]
     vip_status_color = VIPData.colors[player.vip.level]
     for player_in_registry in Player._registry.values():
         if player_in_registry.vip.level != -1:
-            player_in_registry.send_notification_message(f"{{{Colors.vip_hex}}}[VIP] {{{vip_status_color}}}[{vip_status}]{{{Colors.white_hex}}} {player_in_registry.get_name()}: {message}")
+            player_in_registry.send_notification_message(f"{{{Colors.vip_hex}}}[VIP] {{{vip_status_color}}}[{vip_status}]{{{Colors.white_hex}}} {player.get_name()}({player.id}): {message}")
 
 @cmd
 @Player.using_registry
@@ -285,14 +300,16 @@ def vbuy(player: Player):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.gangwar_world]):
+    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
         return
 
     if player.vip.level == -1:
         return player.send_error_message("У Вас нет VIP статуса!")
 
     if player.vip.level < 1:
-        return player.send_error_message(f"Вам необходимо приобрести {{{Colors.silver_hex_hex}}}SILVER VIP{{{Colors.red_hex}}} и выше!")
+        return player.send_error_message(f"Вам необходимо приобрести {{{Colors.silver_hex}}}SILVER VIP{{{Colors.red_hex}}} и выше!")
+
+    return Dialogs.show_vbuy_dialog(player)
 
 @cmd
 @Player.using_registry
@@ -300,9 +317,6 @@ def rclist(player: Player):
     player.kick_if_not_logged_or_jailed()
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
-
-    if not player.check_player_mode([ServerWorldIDs.gangwar_world]):
-        return
 
     if player.vip.level == -1:
         return player.send_error_message("У Вас нет VIP статуса!")
@@ -508,9 +522,11 @@ def sms(player: Player, player_id: int, *message: str):
         return player.send_error_message("Игрок не найден!")
 
     target = Player.from_registry_native(target_id)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
+    player.play_sound(1052, x=0.0, y=0.0, z=0.0)
+    target.play_sound(1052, x=0.0, y=0.0, z=0.0)
     player.send_client_message(Colors.sms, f"[SMS] {message}. Получатель: {target.get_name()}({target.id}).")
     return target.send_client_message(Colors.sms, f"[SMS] {message}. Отправитель: {player.get_name()}({player.id}).")
 
@@ -580,7 +596,6 @@ def ahelp(player: Player):
             f"{{{Colors.cmd_hex}}}/ahelp\t{{{Colors.red_hex}}}1\t{{{Colors.dialog_hex}}}Список команд для администрации\n"
             f"{{{Colors.cmd_hex}}}/pm\t{{{Colors.red_hex}}}1\t{{{Colors.dialog_hex}}}Ответ на /report\n"
             f"{{{Colors.cmd_hex}}}/admins\t{{{Colors.red_hex}}}1\t{{{Colors.dialog_hex}}}Список администраторов в сети\n"
-            f"{{{Colors.cmd_hex}}}/getstats\t{{{Colors.red_hex}}}1\t{{{Colors.dialog_hex}}}Получение статистики игрока\n"
             f"{{{Colors.cmd_hex}}}/aad\t{{{Colors.red_hex}}}1\t{{{Colors.dialog_hex}}}Сообщение от имени администратора\n"
             f"{{{Colors.cmd_hex}}}/spec\t{{{Colors.red_hex}}}2\t{{{Colors.dialog_hex}}}Слежка за игроком\n"
             f"{{{Colors.cmd_hex}}}/specoff\t{{{Colors.red_hex}}}2\t{{{Colors.dialog_hex}}}Отключение слежки за игроком\n"
@@ -606,6 +621,7 @@ def ahelp(player: Player):
             f"{{{Colors.cmd_hex}}}/setvip\t{{{Colors.red_hex}}}6\t{{{Colors.dialog_hex}}}Изменение VIP статуса для игрока\n"
             f"{{{Colors.cmd_hex}}}/setgangzone\t{{{Colors.red_hex}}}6\t{{{Colors.dialog_hex}}}Изменение владельца территории\n"
             f"{{{Colors.cmd_hex}}}/spawnveh\t{{{Colors.red_hex}}}6\t{{{Colors.dialog_hex}}}Спавн транспорта\n"
+            f"{{{Colors.cmd_hex}}}/positions\t{{{Colors.red_hex}}}6\t{{{Colors.dialog_hex}}}Меню позиций Администратора\n"
         ),
         "Закрыть",
         ""
@@ -631,8 +647,9 @@ def spawn(player: Player, player_id: int = None):
         return player.send_error_message("Игрок не найден!")
 
     target = Player.from_registry_native(target_id)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
+
     return target.spawn()
 
 @cmd
@@ -656,9 +673,11 @@ def pm(player: Player, player_id: int, *message: str):
         return player.send_error_message("Использование команды: /pm player_id message")
 
     target = Player.from_registry_native(target_id)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
+    player.play_sound(1052, x=0.0, y=0.0, z=0.0)
+    target.play_sound(1052, x=0.0, y=0.0, z=0.0)
     target.send_client_message(Colors.admin_pm, f"[REPORT] Ответ от {player.name}({player.id}): {message}.")
     return player.send_client_message(Colors.admin_pm, f"[REPORT] Ваш ответ: {message}.")
 
@@ -678,24 +697,6 @@ def admins(player: Player):
             admins_str += f"{player_in_registry.name}({player_in_registry.id}) - {player_in_registry.admin.level} "
 
     return player.send_notification_message(f"Список администраторов: {{{Colors.cmd_hex}}}{admins_str}")
-
-@cmd
-@Player.using_registry
-def getstats(player: Player, player_id: int):
-    player.kick_if_not_logged_or_jailed()
-    if not player.check_cooldown(1.5):
-        return player.send_error_message("Не флудите!")
-
-    if not player.admin.check_command_access(1):
-        return player.send_error_message("Вам недоступна эта команда!")
-
-    try:
-        target_id = int(player_id)
-
-    except:
-        return player.send_error_message("Игрок не найден!")
-
-    return Dialogs.show_stats_dialog(player, player_id=target_id)
 
 @cmd
 @Player.using_registry
@@ -733,11 +734,8 @@ def spec(player: Player, player_id: int):
         return player.send_error_message("Вы не можете наблюдать за собой!")
 
     target = Player.from_registry_native(target_id)
-    if not target:
-        return player.send_error_message("Игрок не найден")
-
     if not target.is_connected():
-        return player.send_error_message("Игрок ещё не подключился!")
+        return player.send_error_message("Игрок не найден!")
 
     if player.get_state() == PLAYER_STATE_SPECTATING:
         return player.send_error_message("Вы уже за кем-то наблюдаете!")
@@ -800,7 +798,7 @@ def jail(player: Player, player_id: int, minutes: int, *reason: str):
         return player.send_error_message("Вы не можете указать себя!")
 
     target = Player.from_registry_native(target_id)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
     if target.is_data.jailed:
@@ -832,7 +830,7 @@ def unjail(player: Player, player_id: int):
         return player.send_error_message("Вы не можете указать себя!")
 
     target = Player.from_registry_native(target_id)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
     if not target.is_data.jailed:
@@ -877,7 +875,7 @@ def mute(player: Player, player_id: int, minutes: int, *reason: str):
         return player.send_error_message("Вы не можете указать себя!")
 
     target = Player.from_registry_native(target_id)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
     if target.is_data.muted:
@@ -908,7 +906,7 @@ def unmute(player: Player, player_id: int):
         return player.send_error_message("Вы не можете указать себя!")
 
     target = Player.from_registry_native(target_id)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
     if not target.is_data.muted:
@@ -923,16 +921,29 @@ def unmute(player: Player, player_id: int):
 
 @cmd
 @Player.using_registry
-def hp(player: Player):
+def heal(player: Player):
     player.kick_if_not_logged_or_jailed()
-    if not player.check_cooldown(1.5):
+    if not player.check_cooldown(120.0):
         return player.send_error_message("Не флудите!")
 
-    if not player.admin.check_command_access(2):
-        return player.send_error_message("Вам недоступна эта команда!")
+    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+        return
 
     player.set_health(100.0)
     return player.send_notification_message(f"Значение HP восстановлено до {{{Colors.cmd_hex}}}100{{{Colors.white_hex}}}.")
+
+@cmd
+@Player.using_registry
+def armour(player: Player):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(120.0):
+        return player.send_error_message("Не флудите!")
+
+    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+        return
+
+    player.set_armour(100.0)
+    return player.send_notification_message(f"Значение AR восстановлено до {{{Colors.cmd_hex}}}100{{{Colors.white_hex}}}.")
 
 @cmd
 @Player.using_registry
@@ -954,11 +965,11 @@ def goto(player: Player, player_id: int):
         return player.send_error_message("Вы не можете указать себя!")
 
     target = Player.from_registry_native(target_id)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
     x, y, z = target.get_pos()
-    player.set_pos(x, y, z+5.0)
+    player.set_pos(x+5.0, y+5.0, z)
     player.set_interior(target.get_interior())
     player.set_virtual_world(target.mode)
     return player.send_notification_message(f"Вы были перемещены к игроку {{{Colors.cmd_hex}}}{target.name}({target.id}){{{Colors.white_hex}}}.")
@@ -984,10 +995,10 @@ def gethere(player: Player, player_id: int):
 
     x, y, z = player.get_pos()
     target = Player.from_registry_native(target_id)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
-    target.set_pos(x, y, z+5.0)
+    target.set_pos(x+5.0, y+5.0, z)
     target.set_interior(player.get_interior())
     target.set_virtual_world(player.mode)
     return player.send_notification_message(f"Вы переместили игрока {{{Colors.cmd_hex}}}{target.name}({target.id}){{{Colors.white_hex}}}.")
@@ -1012,7 +1023,7 @@ def slap(player: Player, player_id: int):
         return player.send_error_message("Вы не можете указать себя!")
 
     target = Player.from_registry_native(target_id)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
     x, y, z = target.get_pos()
@@ -1039,7 +1050,7 @@ def freeze(player: Player, player_id: int):
         return player.send_error_message("Вы не можете указать себя!")
 
     target = Player.from_registry_native(target_id)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
     target.toggle_controllable(False)
@@ -1065,7 +1076,7 @@ def unfreeze(player: Player, player_id: int):
         return player.send_error_message("Вы не можете указать себя!")
 
     target = Player.from_registry_native(target_id)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
     target.toggle_controllable(True)
@@ -1095,7 +1106,7 @@ def ban(player: Player, player_id: int, *reason: str):
         return player.send_error_message("Вы не можете указать себя!")
 
     target = Player.from_registry_native(target_id)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
     target.is_data.banned = True
@@ -1113,7 +1124,7 @@ def unban(player: Player, player_name: str):
         return player.send_error_message("Вам недоступна эта команда!")
 
     target = DataBase.get_player_name(player_name)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
     if not target.is_data.banned:
@@ -1158,7 +1169,7 @@ def getip(player: Player, player_id: int):
         return player.send_error_message("Игрок не найден!")
 
     target = Player.from_registry_native(target_id)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
     return player.send_notification_message(f"IP игрока {{{Colors.cmd_hex}}}{target.name}({target.id}){{{Colors.white_hex}}} - {{{Colors.cmd_hex}}}{target.get_ip()}{{{Colors.white_hex}}}.")
@@ -1192,7 +1203,7 @@ def givegun(player: Player, player_id: int, weapon_id: int, ammo: int = 100):
         return player.send_error_message("Укажите количество патронов!")
 
     target = Player.from_registry_native(target_id)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
     target.give_weapon(target_weapon_id, target_ammo)
@@ -1222,7 +1233,7 @@ def sethp(player: Player, player_id: int, health: float):
         return player.send_error_message("Укажите количество HP!")
 
     target = Player.from_registry_native(target_id)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
     target.set_health(target_health)
@@ -1252,7 +1263,7 @@ def amusic(player: Player, player_id: int, url: str, distance: float = 5.0):
         return player.send_error_message("Укажите дистанцию!")
 
     target = Player.from_registry_native(target_id)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
     target.play_audio_stream(url, *target.get_pos(), distance=target_distance)
@@ -1275,7 +1286,7 @@ def stopamusic(player: Player, player_id: int):
         return player.send_error_message("Игрок не найден!")
 
     target = Player.from_registry_native(target_id)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
     target.stop_audio_stream()
@@ -1330,7 +1341,7 @@ def setvip(player: Player, player_id: int, level: int):
         return player.send_error_message("Укажите уровень от 1 до 3")
 
     target = Player.from_registry_native(target_id)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
     target.vip.level = target_level - 1
@@ -1401,10 +1412,7 @@ def spawnveh(player: Player, vehicle_id: int, color_one: int, color_two: int):
     except:
         player.send_error_message(f"Укажите ID!")
 
-    if player.vehicle.id != ID_NONE:
-        veh = Vehicle.get_from_registry(player.vehicle.id)
-        Vehicle.remove_unused_player_vehicle(veh)
-
+    player.remove_unused_vehicle()
     player_veh = Vehicle.create(
         target_vehicle_id,
         *player.get_pos(),
@@ -1415,14 +1423,20 @@ def spawnveh(player: Player, vehicle_id: int, color_one: int, color_two: int):
         player.mode
     )
     player_veh.set_info(owner=player.get_name())
-    player.vehicle.id = player_veh.id
-    player.put_in_vehicle(player.vehicle.id, 0)
+    player.update_vehicle_inst(player_veh)
+    player.put_in_vehicle(player.vehicle.inst.id, 0)
 
 @cmd
 @Player.using_registry
-def players(player: Player):
-    for id, player in Player._registry.items():
-        send_client_message_to_all(-1, f"ID: {id} | Player: {player}")
+def positions(player: Player):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.admin.check_command_access(6):
+        return player.send_error_message("Вам недоступна эта команда!")
+
+    return Dialogs.show_positions_dialog(player)
 
 @cmd(aliases=("veh", "vehicle", "v"))
 @Player.using_registry
@@ -1456,22 +1470,22 @@ def pay(player: Player, player_id: int, amount: int):
         return player.send_error_message("Укажите количество!")
 
     target = Player.from_registry_native(target_id)
-    if not target:
+    if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
-    if amount < 0:
+    if target_amount < 0:
         return player.send_error_message("Укажите число больше 0!")
 
-    if player.money - amount < 0:
-        return player.send_error_message(f"Вам не хватает {{{Colors.cmd_hex}}}{amount - player.money}${{{Colors.red_hex}}}!")
+    if player.money - target_amount < 0:
+        return player.send_error_message(f"Вам не хватает {{{Colors.cmd_hex}}}{target_amount - player.money}${{{Colors.red_hex}}}!")
 
     if player.distance_from_point(*target.get_pos) > 3.0:
         return player.send_error_message("Игрок слишком далеко!")
 
-    player.set_money_ex(amount, increase=False)
-    target.set_money_ex(amount)
+    player.set_money_ex(target_amount, increase=False)
+    target.set_money_ex(target_amount)
     target.send_notification_message(f"Игрок {{{Colors.cmd_hex}}}{player.name}({player.id}){{{Colors.white_hex}}} передал Вам {{{Colors.green_hex}}}{amount}${{{Colors.white_hex}}}.")
-    return player.send_notification_message(f"Вы передали {{{Colors.green_hex}}}{amount}${{{Colors.white_hex}}} игроку {{{Colors.cmd_hex}}}{player.name}({player.id}){{{Colors.white_hex}}}.")
+    return player.send_notification_message(f"Вы передали {{{Colors.green_hex}}}{target_amount}${{{Colors.white_hex}}} игроку {{{Colors.cmd_hex}}}{player.name}({player.id}){{{Colors.white_hex}}}.")
 
 @cmd
 @Player.using_registry
@@ -1509,8 +1523,9 @@ def elegy(player: Player, color_one: int, color_two: int):
         player.mode
     )
     player_veh.set_info(owner=player.get_name())
-    player.vehicle.id = player_veh.id
-    player.put_in_vehicle(player.vehicle.id, 0)
+    player_veh.add_component(VehicleComponents.nitro_x10)
+    player.update_vehicle_inst(player_veh)
+    player.put_in_vehicle(player.vehicle.inst.id, 0)
 
 @cmd
 @Player.using_registry
@@ -1548,8 +1563,9 @@ def infernus(player: Player, color_one: int, color_two: int):
         player.mode
     )
     player_veh.set_info(owner=player.get_name())
-    player.vehicle.id = player_veh.id
-    player.put_in_vehicle(player.vehicle.id, 0)
+    player_veh.add_component(VehicleComponents.nitro_x10)
+    player.update_vehicle_inst(player_veh)
+    player.put_in_vehicle(player.vehicle.inst.id, 0)
 
 @cmd
 @Player.using_registry
@@ -1587,8 +1603,9 @@ def bullet(player: Player, color_one: int, color_two: int):
         player.mode
     )
     player_veh.set_info(owner=player.get_name())
-    player.vehicle.id = player_veh.id
-    player.put_in_vehicle(player.vehicle.id, 0)
+    player_veh.add_component(VehicleComponents.nitro_x10)
+    player.update_vehicle_inst(player_veh)
+    player.put_in_vehicle(player.vehicle.inst.id, 0)
 
 @cmd
 @Player.using_registry
@@ -1626,5 +1643,76 @@ def sultan(player: Player, color_one: int, color_two: int):
         player.mode
     )
     player_veh.set_info(owner=player.get_name())
-    player.vehicle.id = player_veh.id
-    player.put_in_vehicle(player.vehicle.id, 0)
+    player_veh.add_component(VehicleComponents.nitro_x10)
+    player.update_vehicle_inst(player_veh)
+    player.put_in_vehicle(player.vehicle.inst.id, 0)
+
+@cmd(aliases=("tp", "t"))
+@Player.using_registry
+def teleport(player: Player):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+        return
+
+    return Dialogs.show_teleports_dialog(player)
+
+@cmd
+@Player.using_registry
+def flip(player: Player):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+        return
+
+    if not player.is_in_any_vehicle():
+        return player.send_error_message("Вы должны находиться в транспорте!")
+
+    veh = Vehicle.from_registry_native(player.vehicle.id)
+    x, y, z = veh.get_position()
+    angle = veh.get_z_angle()
+    veh.set_position(x, y, z+1.5)
+    veh.set_z_angle(angle)
+    return player.send_notification_message("Транспорт был перевёрнут.")
+
+
+@cmd(aliases=("vt", "tune"))
+@Player.using_registry
+def tuning(player: Player):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+        return
+
+    if not player.is_in_any_vehicle():
+        return player.send_error_message("Вы должны находиться в транспорте!")
+
+    return Dialogs.show_tuning_dialog(player)
+
+@cmd()
+@Player.using_registry
+def pdata(player: Player, player_id: int):
+    if not player.admin.check_command_access(7):
+        return
+
+    player = Player.from_registry_native(int(player_id))
+    player.send_notification_message(f"{{{Colors.admin_hex}}}Drift: {player.drift}")
+    player.send_notification_message(f"{{{Colors.admin_pm_hex}}}Gun slots: {player.gun_slots}")
+    player.send_notification_message(f"{{{Colors.white_hex}}}VIP: {player.vip}")
+    player.send_notification_message(f"{{{Colors.green_hex}}}Admin: {player.admin}")
+    player.send_notification_message(f"{{{Colors.red_hex}}}Is: {player.is_data}")
+    player.send_notification_message(f"{{{Colors.dark_green_hex}}}Time: {player.time}")
+    player.send_notification_message(f"{{{Colors.aztecas_hex}}}Settings: {player.settings}")
+    player.send_notification_message(f"{{{Colors.ballas_hex}}}Timers: {player.timers}")
+    player.send_notification_message(f"{{{Colors.vip_hex}}}Temp: {player.tmp}")
+    player.send_notification_message(f"{{{Colors.gold_hex}}}Vehicle: {player.vehicle}")
+    try:
+        player.send_notification_message(f"{{{Colors.silver_hex}}}Vehicle in registry: {Vehicle._registry[player.get_vehicle_id()]}")
+    except:
+        player.send_notification_message(f"{{{Colors.silver_hex}}}Vehicle in registry: Not found")
