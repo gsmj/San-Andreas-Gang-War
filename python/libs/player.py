@@ -135,14 +135,14 @@ class Player(BasePlayer):
         else:
             if (self.dm_rating - amount) < 0:
                 self.dm_rating = 0
-                string = f"~r~-0"
+                return
 
             else:
                 self.dm_rating -= amount
                 string = f"~r~-{amount}"
 
         if show_text:
-            self.game_text(string, 1500, 1)
+            self.game_text(string, 1500, 3)
 
     def take_money_ex(self, amount: int, show_text: bool = True) -> None:
         self.money -= amount
@@ -529,8 +529,10 @@ class Player(BasePlayer):
     def is_in_deathmatch_gangzone(self) -> None:
         gz = GangZones.deathmatch[self.mode]
         if not self.is_in_area(gz.min_x, gz.min_y, gz.max_x, gz.max_y):
-            self.send_notification_message("Вы были перемещены!")
-            return self.spawn()
+            i = randint(0, len(DeathMatchSpawns.spawns[self.mode]) - 1)
+            self.set_pos(DeathMatchSpawns.spawns[self.mode][i][0], DeathMatchSpawns.spawns[self.mode][i][1], DeathMatchSpawns.spawns[self.mode][i][2])
+            self.set_facing_angle(DeathMatchSpawns.spawns[self.mode][i][3])
+            return self.send_notification_message("Вы были перемещены!")
 
         return
 
@@ -953,6 +955,9 @@ class Player(BasePlayer):
         if self.mode == ServerMode.jail_world:
             return self.enable_jail_mode()
 
+        if self.mode in ServerMode.deathmatch_worlds:
+            return self.enable_deathmatch_mode(self.mode)
+
     def on_death_handle(self, killer: "Player", reason: int) -> None:
         self.send_debug_message("on_death_handle", f"Player: {self} | Killer: {killer}")
         self.kick_if_not_logged()
@@ -970,6 +975,7 @@ class Player(BasePlayer):
         if self.mode in ServerMode.deathmatch_worlds:
             if self.timers.deathmatch_in_area != TIMER_ID_NONE:
                 kill_timer(self.timers.deathmatch_in_area)
+                self.timers.deathmatch_in_area = TIMER_ID_NONE
 
             self.set_deathmatch_spawn_info(self.mode)
             self.send_death_message(killer, self, reason)

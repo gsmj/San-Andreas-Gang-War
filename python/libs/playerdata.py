@@ -73,7 +73,7 @@ class PlayerTimers:
     jail_id: int = TIMER_ID_NONE
     mute_id: int = TIMER_ID_NONE
     every_sec: int = TIMER_ID_NONE
-    deathmatch_in_area = TIMER_ID_NONE
+    deathmatch_in_area: int = TIMER_ID_NONE
 
 
 @dataclass

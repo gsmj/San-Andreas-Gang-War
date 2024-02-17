@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from random import randint
-import matplotlib
 import samp # type: ignore
 
 

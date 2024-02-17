@@ -1726,8 +1726,6 @@ def pdata(player: Player, player_id: int):
     except:
         player.send_notification_message(f"{{{Colors.silver_hex}}}Vehicle in registry: Not found")
 
-    player.send_notification_message(f"{player_} Attributes:")
-    for attr, val in vars(player_).items():
-
-
-        player.send_notification_message(f"Attr: {attr} | Val: {val}")
+    # player.send_notification_message(f"{player_} Attributes:")
+    # for attr, val in vars(player_).items():
+    #     player.send_notification_message(f"Attr: {attr} | Val: {val}")
