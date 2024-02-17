@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from .consts import TIMER_ID_NONE, SLOT_ID_NONE, ID_NONE
+from .utils.consts import TIMER_ID_NONE, SLOT_ID_NONE, ID_NONE
 from .vehicle import Vehicle
 
 @dataclass
@@ -20,12 +20,14 @@ class PlayerFreeroamGunSlots:
     assault_rifle: int = SLOT_ID_NONE # Assault rifle
     long_rifle: int = SLOT_ID_NONE # Long rifle
 
+
 @dataclass
 class PlayerVIP:
     level: int = -1
     is_random_clist_enabled: bool = False
     random_clist_timer_id: int = TIMER_ID_NONE
     gangwar_template = ("0, 0, 0")
+    random_clist_iterator: int = 0
 
 
 @dataclass
@@ -42,7 +44,7 @@ class PlayerAdmin:
 
 
 @dataclass
-class PlayerIs:
+class PlayerChecks:
     muted: bool = False
     jailed: bool = False
     logged: bool = False
@@ -71,12 +73,15 @@ class PlayerTimers:
     jail_id: int = TIMER_ID_NONE
     mute_id: int = TIMER_ID_NONE
     every_sec: int = TIMER_ID_NONE
+    deathmatch_in_area = TIMER_ID_NONE
 
 
 @dataclass
 class PlayerTemp:
     capture_tuple = None
     login_attempts = 1
+    freeroam_selector: int = 0
+    mode_after_selector: int = None
 
 
 @dataclass

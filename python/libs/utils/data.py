@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 from random import randint
-import os
+import matplotlib
 import samp # type: ignore
 
 
@@ -48,6 +48,7 @@ class Colors:
     jail: int = 0xC0C0C0AA
     dark_green: int = 0x34C924AA
     ad: int = 0xF44336AA
+    deathmatch: int = 0x434B4DAA
     game_text_groove: str = "~g~"
     game_text_ballas: str = "~p~"
     game_text_vagos: str = "~h~~h~"
@@ -62,7 +63,8 @@ class Colors:
     rifa_hex: str = "1560BD"
     white_hex: str = "FFFFFF"
     red_hex: str = "ff6347"
-    cmd_hex: str = "FFCD00"
+    # cmd_hex: str = "FFCD00"
+    cmd_hex: str = "D53032"
     vip_hex: str = "EDFF21"
     dialog_hex: str = "A9C4E4"
     green_hex: str = "008000"
@@ -73,6 +75,320 @@ class Colors:
     admin_pm_hex: str = "FBCEB1"
     link_hex: str = "2986cc"
     dark_green_hex: str = "34C924"
+    ad_hex = "F44336"
+    clist_hex = {
+        0: "F0F8FF",
+        1: "FAEBD7",
+        2: "00FFFF",
+        3: "7FFFD4",
+        4: "F0FFFF",
+        5: "F5F5DC",
+        6: "FFE4C4",
+        7: "000000",
+        8: "FFEBCD",
+        9: "0000FF",
+        10: "8A2BE2",
+        11: "A52A2A",
+        12: "DEB887",
+        13: "5F9EA0",
+        14: "7FFF00",
+        15: "D2691E",
+        16: "FF7F50",
+        17: "6495ED",
+        18: "FFF8DC",
+        19: "DC143C",
+        20: "00FFFF",
+        21: "00008B",
+        22: "008B8B",
+        23: "B8860B",
+        24: "A9A9A9",
+        25: "006400",
+        26: "A9A9A9",
+        27: "BDB76B",
+        28: "8B008B",
+        29: "556B2F",
+        30: "FF8C00",
+        31: "9932CC",
+        32: "8B0000",
+        33: "E9967A",
+        34: "8FBC8F",
+        35: "483D8B",
+        36: "2F4F4F",
+        37: "2F4F4F",
+        38: "00CED1",
+        39: "9400D3",
+        40: "FF1493",
+        41: "00BFFF",
+        42: "696969",
+        43: "696969",
+        44: "1E90FF",
+        45: "B22222",
+        46: "FFFAF0",
+        47: "228B22",
+        48: "FF00FF",
+        49: "DCDCDC",
+        50: "F8F8FF",
+        51: "FFD700",
+        52: "DAA520",
+        53: "808080",
+        54: "008000",
+        55: "ADFF2F",
+        56: "808080",
+        57: "F0FFF0",
+        58: "FF69B4",
+        59: "CD5C5C",
+        60: "4B0082",
+        61: "FFFFF0",
+        62: "F0E68C",
+        63: "E6E6FA",
+        64: "FFF0F5",
+        65: "7CFC00",
+        66: "FFFACD",
+        67: "ADD8E6",
+        68: "F08080",
+        69: "E0FFFF",
+        70: "FAFAD2",
+        71: "D3D3D3",
+        72: "90EE90",
+        73: "D3D3D3",
+        74: "FFB6C1",
+        75: "FFA07A",
+        76: "20B2AA",
+        77: "87CEFA",
+        78: "778899",
+        79: "778899",
+        80: "B0C4DE",
+        81: "FFFFE0",
+        82: "00FF00",
+        83: "32CD32",
+        84: "FAF0E6",
+        85: "FF00FF",
+        86: "800000",
+        87: "66CDAA",
+        88: "0000CD",
+        89: "BA55D3",
+        90: "9370DB",
+        91: "3CB371",
+        92: "7B68EE",
+        93: "00FA9A",
+        94: "48D1CC",
+        95: "C71585",
+        96: "191970",
+        97: "F5FFFA",
+        98: "FFE4E1",
+        99: "FFE4B5",
+        100: "FFDEAD",
+        101: "000080",
+        102: "FDF5E6",
+        103: "808000",
+        104: "6B8E23",
+        105: "FFA500",
+        106: "FF4500",
+        107: "DA70D6",
+        108: "EEE8AA",
+        109: "98FB98",
+        110: "AFEEEE",
+        111: "DB7093",
+        112: "FFEFD5",
+        113: "FFDAB9",
+        114: "CD853F",
+        115: "FFC0CB",
+        116: "DDA0DD",
+        117: "B0E0E6",
+        118: "800080",
+        119: "663399",
+        120: "FF0000",
+        121: "BC8F8F",
+        122: "4169E1",
+        123: "8B4513",
+        124: "FA8072",
+        125: "F4A460",
+        126: "2E8B57",
+        127: "FFF5EE",
+        128: "A0522D",
+        129: "C0C0C0",
+        130: "87CEEB",
+        131: "6A5ACD",
+        132: "708090",
+        133: "708090",
+        134: "FFFAFA",
+        135: "00FF7F",
+        136: "4682B4",
+        137: "D2B48C",
+        138: "008080",
+        139: "D8BFD8",
+        140: "FF6347",
+        141: "40E0D0",
+        142: "EE82EE",
+        143: "F5DEB3",
+        144: "FFFFFF",
+        145: "F5F5F5",
+        146: "FFFF00",
+        147: "9ACD32"
+    }
+    clist_rgba = {
+        0: 0xF0F8FFAA,
+        1: 0xFAEBD7AA,
+        2: 0x00FFFFAA,
+        3: 0x7FFFD4AA,
+        4: 0xF0FFFFAA,
+        5: 0xF5F5DCAA,
+        6: 0xFFE4C4AA,
+        7: 0x000000AA,
+        8: 0xFFEBCDAA,
+        9: 0x0000FFAA,
+        10: 0x8A2BE2AA,
+        11: 0xA52A2AAA,
+        12: 0xDEB887AA,
+        13: 0x5F9EA0AA,
+        14: 0x7FFF00AA,
+        15: 0xD2691EAA,
+        16: 0xFF7F50AA,
+        17: 0x6495EDAA,
+        18: 0xFFF8DCAA,
+        19: 0xDC143CAA,
+        20: 0x00FFFFAA,
+        21: 0x00008BAA,
+        22: 0x008B8BAA,
+        23: 0xB8860BAA,
+        24: 0xA9A9A9AA,
+        25: 0x006400AA,
+        26: 0xA9A9A9AA,
+        27: 0xBDB76BAA,
+        28: 0x8B008BAA,
+        29: 0x556B2FAA,
+        30: 0xFF8C00AA,
+        31: 0x9932CCAA,
+        32: 0x8B0000AA,
+        33: 0xE9967AAA,
+        34: 0x8FBC8FAA,
+        35: 0x483D8BAA,
+        36: 0x2F4F4FAA,
+        37: 0x2F4F4FAA,
+        38: 0x00CED1AA,
+        39: 0x9400D3AA,
+        40: 0xFF1493AA,
+        41: 0x00BFFFAA,
+        42: 0x696969AA,
+        43: 0x696969AA,
+        44: 0x1E90FFAA,
+        45: 0xB22222AA,
+        46: 0xFFFAF0AA,
+        47: 0x228B22AA,
+        48: 0xFF00FFAA,
+        49: 0xDCDCDCAA,
+        50: 0xF8F8FFAA,
+        51: 0xFFD700AA,
+        52: 0xDAA520AA,
+        53: 0x808080AA,
+        54: 0x008000AA,
+        55: 0xADFF2FAA,
+        56: 0x808080AA,
+        57: 0xF0FFF0AA,
+        58: 0xFF69B4AA,
+        59: 0xCD5C5CAA,
+        60: 0x4B0082AA,
+        61: 0xFFFFF0AA,
+        62: 0xF0E68CAA,
+        63: 0xE6E6FAAA,
+        64: 0xFFF0F5AA,
+        65: 0x7CFC00AA,
+        66: 0xFFFACDAA,
+        67: 0xADD8E6AA,
+        68: 0xF08080AA,
+        69: 0xE0FFFFAA,
+        70: 0xFAFAD2AA,
+        71: 0xD3D3D3AA,
+        72: 0x90EE90AA,
+        73: 0xD3D3D3AA,
+        74: 0xFFB6C1AA,
+        75: 0xFFA07AAA,
+        76: 0x20B2AAAA,
+        77: 0x87CEFAAA,
+        78: 0x778899AA,
+        79: 0x778899AA,
+        80: 0xB0C4DEAA,
+        81: 0xFFFFE0AA,
+        82: 0x00FF00AA,
+        83: 0x32CD32AA,
+        84: 0xFAF0E6AA,
+        85: 0xFF00FFAA,
+        86: 0x800000AA,
+        87: 0x66CDAAAA,
+        88: 0x0000CDAA,
+        89: 0xBA55D3AA,
+        90: 0x9370DBAA,
+        91: 0x3CB371AA,
+        92: 0x7B68EEAA,
+        93: 0x00FA9AAA,
+        94: 0x48D1CCAA,
+        95: 0xC71585AA,
+        96: 0x191970AA,
+        97: 0xF5FFFAAA,
+        98: 0xFFE4E1AA,
+        99: 0xFFE4B5AA,
+        100: 0xFFDEADAA,
+        101: 0x000080AA,
+        102: 0xFDF5E6AA,
+        103: 0x808000AA,
+        104: 0x6B8E23AA,
+        105: 0xFFA500AA,
+        106: 0xFF4500AA,
+        107: 0xDA70D6AA,
+        108: 0xEEE8AAAA,
+        109: 0x98FB98AA,
+        110: 0xAFEEEEAA,
+        111: 0xDB7093AA,
+        112: 0xFFEFD5AA,
+        113: 0xFFDAB9AA,
+        114: 0xCD853FAA,
+        115: 0xFFC0CBAA,
+        116: 0xDDA0DDAA,
+        117: 0xB0E0E6AA,
+        118: 0x800080AA,
+        119: 0x663399AA,
+        120: 0xFF0000AA,
+        121: 0xBC8F8FAA,
+        122: 0x4169E1AA,
+        123: 0x8B4513AA,
+        124: 0xFA8072AA,
+        125: 0xF4A460AA,
+        126: 0x2E8B57AA,
+        127: 0xFFF5EEAA,
+        128: 0xA0522DAA,
+        129: 0xC0C0C0AA,
+        130: 0x87CEEBAA,
+        131: 0x6A5ACDAA,
+        132: 0x708090AA,
+        133: 0x708090AA,
+        134: 0xFFFAFAAA,
+        135: 0x00FF7FAA,
+        136: 0x4682B4AA,
+        137: 0xD2B48CAA,
+        138: 0x008080AA,
+        139: 0xD8BFD8AA,
+        140: 0xFF6347AA,
+        141: 0x40E0D0AA,
+        142: 0xEE82EEAA,
+        143: 0xF5DEB3AA,
+        144: 0xFFFFFFAA,
+        145: 0xF5F5F5AA,
+        146: 0xFFFF00AA,
+        147: 0x9ACD32AA,
+    }
+
+@dataclass
+class RainbowColors:
+    colors = {
+        0: 0xe8141AA,
+        1: 0xffa500AA,
+        2: 0xfaeb36AA,
+        3: 0x79c314AA,
+        4: 0x487de7AA,
+        5: 0x4b369dAA,
+        6: 0x70369dAA
+    }
+
 
 @dataclass
 class ZoneNames:
@@ -270,14 +586,26 @@ class MonthsConverter:
     }
 
 
-@dataclass
-class ServerWorldIDs:
+@dataclass(frozen=True)
+class ServerMode:
     default_world: int = 0
     gangwar_world: int = 1
-    deathmatch_world: int = 2
     freeroam_world: int = 3
-    minigames_world: int = 4
-    jail_world: int = 5
+    deathmatch_world_oc_deagle: int = 4
+    deathmatch_world_old_country: int = 5
+    deathmatch_world_farm: int = 6
+    deathmatch_world_abandoned_country: int = 7
+    deathmatch_world_kass: int = 8
+    deathmatch_worlds = (
+        deathmatch_world_oc_deagle,
+        deathmatch_world_old_country,
+        deathmatch_world_farm,
+        deathmatch_world_abandoned_country,
+        deathmatch_world_kass
+    )
+
+
+    jail_world: int = 100
 
 
 @dataclass
@@ -334,7 +662,7 @@ class FreeroamTeleports:
     }
 
 
-@dataclass
+@dataclass(frozen=True)
 class RandomSpawns:
     spawns = [
         [1751.1097,-2106.4529,13.5469,183.1979], # El-Corona - Outside random house
@@ -445,6 +773,49 @@ class RandomSpawns:
         [-2930.0049,487.2518,4.9141,3.8258]  # harbor
     ]
 
+@dataclass(frozen=True)
+class DeathMatchSpawns:
+    spawns = {
+        ServerMode.deathmatch_world_oc_deagle: (
+            (-397.1293, 2250.9568, 42.4297, 290.0000),
+            (-367.7202, 2255.0208, 42.4844, 195.0000) ,
+            (-347.1474, 2230.7024, 42.4885, 100.0000),
+            (-360.3025, 2201.7686, 42.4844, 15.0000),
+            (-391.4041, 2195.4341, 42.4163, 5.0000),
+            (-428.4577, 2204.6074, 42.4297, 280.0000),
+            (-417.8091, 2236.6167, 42.4297, 280.0000),
+        ),
+
+        ServerMode.deathmatch_world_old_country: (
+            (-397.1293, 2250.9568, 42.4297, 290.0000),
+            (-367.7202, 2255.0208, 42.4844, 195.0000) ,
+            (-347.1474, 2230.7024, 42.4885, 100.0000),
+            (-360.3025, 2201.7686, 42.4844, 15.0000),
+            (-391.4041, 2195.4341, 42.4163, 5.0000),
+            (-428.4577, 2204.6074, 42.4297, 280.0000),
+            (-417.8091, 2236.6167, 42.4297, 280.0000),
+        ),
+        ServerMode.deathmatch_world_farm: (
+            (1055.6105, -366.2527, 73.9922,  90.0000),
+            (1019.3500, -302.0771, 73.9931, 180.0000),
+            (1045.9434, -296.9352, 73.9931, 180.0000),
+            (1113.2708, -319.7141, 73.9922, 90.0000),
+        ),
+        ServerMode.deathmatch_world_abandoned_country: (
+            (-1309.9337, 2487.3464, 87.1753, 360.0000),
+            (-1283.0154, 2515.2380, 87.1064, 85.0000),
+            (-1304.1638, 2557.9167, 86.8784, 85.0000),
+        ),
+        ServerMode.deathmatch_world_kass: (
+            (2546.1135, 2837.3240, 10.8203, 0.0000),
+            (2543.4514, 2810.3254, 10.8203, 270.0000),
+            (2592.6772, 2847.3723, 10.8203, 185.0000),
+            (2606.2842, 2807.8652, 10.8203, 0.0000),
+        ),
+    }
+
+
+
 
 @dataclass
 class GunData:
@@ -477,6 +848,20 @@ class GunData:
         "M4": (31, 5, 30000),
         "Rifle": (33, 6, 50000),
         "Sniper Rifle": (34, 6, 50000)
+    }
+
+
+@dataclass(frozen=True)
+class DMRatingColors:
+    colors = {
+        0: Colors.white_hex,
+        1000: "808080",
+        2000: "00ffff",
+        5000: "0047AB",
+        10000: "800080",
+        20000: "FFC0CB",
+        30000: "FF0000",
+        50000: "ffff00"
     }
 
 

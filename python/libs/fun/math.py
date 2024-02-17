@@ -1,6 +1,6 @@
 from dataclasses import dataclass
-from ..consts import ID_NONE, TIMER_ID_NONE
-from ..utils import Colors
+from ..utils.consts import ID_NONE, TIMER_ID_NONE
+from ..utils.data import Colors
 from pysamp import send_client_message_to_all
 from pysamp.timer import set_timer, kill_timer
 import random

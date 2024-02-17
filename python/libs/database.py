@@ -26,7 +26,7 @@ from sqlalchemy.orm import (
 )
 from .gang import DefaultGangZones, gangs
 from pysamp.gangzone import Gangzone
-from .utils import Colors
+from .utils.data import Colors
 from datetime import datetime
 from zoneinfo import ZoneInfo
 import secrets
@@ -44,8 +44,9 @@ class Player(Base):
     last_ip = Column(String(32))
     registration_data = Column(DateTime(timezone=ZoneInfo("Europe/Moscow")))
     score = Column(Integer(), default=0)
-    money = Column(Integer(), default=100000)
+    money = Column(Integer(), default=0)
     donate = Column(Integer(), default=0)
+    dm_rating = Column(Integer(), default=0)
     kills = Column(Integer(), default=0)
     deaths = Column(Integer(), default=0)
     heals = Column(Integer(), default=0)
@@ -140,6 +141,13 @@ class AdminSavedPositions(Base):
     rotation = Column(Float())
 
 
+class ServerAnalytics(Base):
+    __tablename__ = "ServerAnalytics"
+    uid = Column(Integer, Identity(), primary_key=True)
+    date = Column(DateTime(timezone=ZoneInfo("Europe/Moscow")))
+    online = Column(Integer(), default=0)
+
+
 class DataBase():
     @classmethod
     def create_metadata(cls):
@@ -190,11 +198,11 @@ class DataBase():
             return result.scalar()
 
     @classmethod
-    def save_player(cls, player: "Player", **kwargs) -> None:
+    def save_player(cls, player: "Player", **attributes: dict) -> None:
         with cls.Session() as session:
             result = session.execute(select(Player).where(Player.name == player.get_name()))
             player_db = result.scalar()
-            for key, value in kwargs.items():
+            for key, value in attributes.items():
                 if hasattr(player_db, key):
                     setattr(player_db, key, value)
 
@@ -296,10 +304,17 @@ class DataBase():
             result = session.execute(select(GangZone).order_by(GangZone.capture_cooldown))
             return result.scalars().all()
 
+
     @classmethod
     def create_vehicle(cls, id: int, model_id: int, x: float, y: float, z: float, rotation: float, color1: int, color2: int, delay: int, virtual_world: int) -> None:
         with cls.Session() as session:
             session.add(Vehicle(id=id, model_id=model_id, x=x, y=y, z=z, rotation=rotation, color1=color1, color2=color2, delay=delay, virtual_world=virtual_world))
+            session.commit()
+
+    @classmethod
+    def create_analytics(cls, online: int) -> None:
+        with cls.Session() as session:
+            session.add(ServerAnalytics(online=online))
             session.commit()
 
     @classmethod
@@ -351,3 +366,23 @@ class DataBase():
         with cls.Session() as session:
             session.execute(delete(AdminSavedPositions).where(and_(AdminSavedPositions.admin == player.get_name(), AdminSavedPositions.name == name)))
             session.commit()
+
+    @classmethod
+    def create_analytics(cls) -> None:
+        with cls.Session() as session:
+            session.add(ServerAnalytics())
+            session.commit()
+
+    @classmethod
+    def update_analytics(cls) -> None:
+        with cls.Session() as session:
+            result = session.execute(select(ServerAnalytics).order_by(ServerAnalytics.uid))
+            analytics_db = result.scalar()
+            analytics_db.online += 1
+            session.commit()
+
+    @classmethod
+    def get_analytics(cls) -> int:
+        with cls.Session() as session:
+            result = session.execute(select(ServerAnalytics).order_by(ServerAnalytics.uid))
+            return result.scalar().online

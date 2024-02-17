@@ -4,17 +4,17 @@ from pysamp.dialog import Dialog
 from pysamp.timer import set_timer, kill_timer
 from .player import Player, Dialogs
 from .gang import gangs, GangZoneData
-from .utils import (
+from .utils.data import (
     Colors,
     MonthsConverter,
-    ServerWorldIDs,
+    ServerMode,
     WeatherIDs,
     convert_seconds,
     VIPData,
     ServerInfo,
     GunData
 )
-from .consts import TIMER_ID_NONE
+from .utils.consts import TIMER_ID_NONE
 from .database import DataBase
 from datetime import datetime as dt
 from zoneinfo import ZoneInfo
@@ -61,7 +61,7 @@ def healme(player: Player):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.gangwar_world]):
+    if not player.check_player_mode([ServerMode.gangwar_world]):
         return
 
     if player.heals == 0:
@@ -85,10 +85,10 @@ def mask(player: Player):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.gangwar_world]):
+    if not player.check_player_mode([ServerMode.gangwar_world]):
         return
 
-    if player.is_data.wearing_mask:
+    if player.checks.wearing_mask:
         return player.send_error_message("Ваше местоположение уже скрыто!")
 
     if player.masks == 0:
@@ -99,7 +99,7 @@ def mask(player: Player):
 
     player.apply_animation("SHOP", "ROB_Shifty", 4.1, False, False, False, False, 0)
     player.masks -= 1
-    player.is_data.wearing_mask = True
+    player.checks.wearing_mask = True
     player.set_attached_object(2, 19801, 2, offset_x=0.067, offset_y=0.026, offset_z=0.001000, rotation_x=0.30, rotation_y=85.600000, rotation_z=175.400000, scale_x=1.321000, scale_y=1.32700, scale_z=1.257000)
     player.set_color(Colors.mask)
     player.set_chat_bubble("Надевает маску..", Colors.white, 20.0, 5000)
@@ -112,16 +112,16 @@ def maskoff(player: Player):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.gangwar_world]):
+    if not player.check_player_mode([ServerMode.gangwar_world]):
         return
 
-    if not player.is_data.wearing_mask:
+    if not player.checks.wearing_mask:
         return player.send_error_message("У Вас нет маски!")
 
     if player.is_attached_object_slot_used(2):
         player.remove_attached_object(2)
 
-    player.is_data.wearing_mask = False
+    player.checks.wearing_mask = False
     player.set_color(player.gang.color)
     return player.send_notification_message("Вы сняли маску.")
 
@@ -132,14 +132,14 @@ def newgang(player: Player):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.gangwar_world]):
+    if not player.check_player_mode([ServerMode.gangwar_world]):
         return
 
     if player.gang.is_capturing:
         return player.send_error_message("Вы не можете сменить банду сейчас!")
 
-    if player.is_data.wearing_mask:
-        player.is_data.wearing_mask = False
+    if player.checks.wearing_mask:
+        player.checks.wearing_mask = False
         player.set_color(player.gang.color)
 
     if player.is_attached_object_slot_used(2):
@@ -157,13 +157,13 @@ def randomskin(player: Player):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.gangwar_world]):
+    if not player.check_player_mode([ServerMode.gangwar_world]):
         return
 
     if player.gang.is_capturing:
         return player.send_error_message("Вы не можете сменить скин сейчас!")
 
-    if player.get_virtual_world() != ServerWorldIDs.gangwar_world:
+    if player.get_virtual_world() != ServerMode.gangwar_world:
         return player.send_error_message("Вы можете изменить скин только в доме!")
 
     player.set_skin_ex(random.choice(player.gang.skins))
@@ -176,13 +176,13 @@ def changeskin(player: Player):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.gangwar_world]):
+    if not player.check_player_mode([ServerMode.gangwar_world]):
         return
 
     if player.gang.is_capturing:
         return player.send_error_message("Вы не можете сменить скин сейчас!")
 
-    if player.get_virtual_world() != ServerWorldIDs.gangwar_world:
+    if player.get_virtual_world() != ServerMode.gangwar_world:
         return player.send_error_message("Вы можете изменить скин только в доме!")
 
     return Dialogs.show_skin_gang_dialog(player)
@@ -206,10 +206,10 @@ def f(player: Player, *message: str):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.gangwar_world]):
+    if not player.check_player_mode([ServerMode.gangwar_world]):
         return
 
-    if player.is_data.muted:
+    if player.checks.muted:
         return player.send_error_message("Доступ в чат ограничен!")
 
     message = " ".join(message)
@@ -230,7 +230,7 @@ def o(player: Player, *message: str):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if player.is_data.muted:
+    if player.checks.muted:
         return player.send_error_message("Доступ в чат ограничен!")
 
     message = " ".join(message)
@@ -277,7 +277,7 @@ def vc(player: Player, *message: str):
     if player.vip.level == -1:
         return player.send_error_message("У Вас нет VIP статуса!")
 
-    if player.is_data.muted:
+    if player.checks.muted:
         return player.send_error_message("Доступ в чат ограничен!")
 
     message = " ".join(message)
@@ -297,7 +297,7 @@ def vbuy(player: Player):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+    if not player.check_player_mode([ServerMode.freeroam_world]):
         return
 
     if player.vip.level == -1:
@@ -324,12 +324,12 @@ def rclist(player: Player):
         if player.color != 0:
             player.set_color(player.color)
         else:
-            player.set_random_color()
+            player.set_random_color_ex()
 
         return player.send_notification_message(f"Вы {{{Colors.cmd_hex}}}выключили{{{Colors.white_hex}}} переливающийся цвет игрока.")
 
     player.vip.is_random_clist_enabled = True
-    player.vip.random_clist_timer_id = set_timer(player.set_random_color, 1000, True)
+    player.vip.random_clist_timer_id = set_timer(player.set_rainbow_color, 1000, True)
     return player.send_notification_message(f"Вы {{{Colors.cmd_hex}}}включили{{{Colors.white_hex}}} переливающийся цвет игрока.")
 
 @cmd
@@ -339,7 +339,7 @@ def jp(player: Player):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+    if not player.check_player_mode([ServerMode.freeroam_world]):
         return
 
     if player.vip.level == -1:
@@ -359,7 +359,7 @@ def members(player: Player):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.gangwar_world]):
+    if not player.check_player_mode([ServerMode.gangwar_world]):
         return
 
     members_dict = {}
@@ -381,7 +381,7 @@ def gangzones(player: Player):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.gangwar_world]):
+    if not player.check_player_mode([ServerMode.gangwar_world]):
         return
 
     player.send_notification_message("Вы можете выбрать территорию, нажав ЛКМ/Enter.")
@@ -416,7 +416,7 @@ def capture(player: Player):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.gangwar_world]):
+    if not player.check_player_mode([ServerMode.gangwar_world]):
         return
 
     for gangzone in DataBase.load_gangzones():
@@ -505,7 +505,7 @@ def sms(player: Player, player_id: int, *message: str):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if player.is_data.muted:
+    if player.checks.muted:
         return player.send_error_message("Доступ в чат ограничен!")
 
     message = " ".join(message)
@@ -569,7 +569,7 @@ def weapons(player: Player):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+    if not player.check_player_mode([ServerMode.freeroam_world]):
         return
 
     return Dialogs.show_weapons_dialog(player)
@@ -798,12 +798,12 @@ def jail(player: Player, player_id: int, minutes: int, *reason: str):
     if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
-    if target.is_data.jailed:
+    if target.checks.jailed:
         player.send_error_message("Игрок уже в деморгане!")
 
-    target.is_data.jailed = True
+    target.checks.jailed = True
     target.time.jail = target_time
-    target.set_mode(ServerWorldIDs.jail_world)
+    target.set_mode(ServerMode.jail_world)
     target.enable_jail_mode()
     return send_client_message_to_all(Colors.admin, f"Администратор {player.name}({player.id}) посадил игрока {target.name}({target.id}) в деморган на {minutes} минут. Причина: {reason}.")
 
@@ -830,16 +830,16 @@ def unjail(player: Player, player_id: int):
     if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
-    if not target.is_data.jailed:
+    if not target.checks.jailed:
         player.send_error_message("Игрок не в деморгане!")
 
     target.send_notification_message(f"Администратор {{{Colors.cmd_hex}}}{player.name}({player.id}){{{Colors.white_hex}}} выпустил Вас выпустили из деморгана.")
     kill_timer(target.timers.jail_id)
-    target.is_data.jailed = False
+    target.checks.jailed = False
     target.time.jail = 0
     target.timers.jail_id = TIMER_ID_NONE
-    target.set_mode(ServerWorldIDs.freeroam_world)
-    target.enable_freeroam_selector()
+    target.set_mode(ServerMode.freeroam_world)
+    target.enable_skin_selector()
     return send_client_message_to_all(Colors.admin, f"Администратор {player.name}({player.id}) выпустил игрока {target.name}({target.id}) из деморгана.")
 
 @cmd
@@ -875,10 +875,10 @@ def mute(player: Player, player_id: int, minutes: int, *reason: str):
     if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
-    if target.is_data.muted:
+    if target.checks.muted:
         player.send_error_message("Игрок уже в муте!")
 
-    target.is_data.muted = True
+    target.checks.muted = True
     target.time.mute = target_time
     target.timers.mute_id = set_timer(target.mute_timer, target_time * 60000, False)
     return send_client_message_to_all(Colors.admin, f"Администратор {player.name}({player.id}) выдал мут игроку {target.name}({target.id}) на {minutes} минут. Причина: {reason}.")
@@ -906,12 +906,12 @@ def unmute(player: Player, player_id: int):
     if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
-    if not target.is_data.muted:
+    if not target.checks.muted:
         player.send_error_message("Игрок не в муте!")
 
     target.send_notification_message(f"Администратор {{{Colors.cmd_hex}}}{player.name}({player.id}){{{Colors.white_hex}}} снял с Вас мут.")
     kill_timer(target.timers.mute_id)
-    target.is_data.muted = False
+    target.checks.muted = False
     target.time.mute = 0
     target.timers.mute_id = TIMER_ID_NONE
     return send_client_message_to_all(Colors.admin, f"Администратор {player.name}({player.id}) снял мут с игрока {target.name}({target.id}).")
@@ -923,7 +923,7 @@ def heal(player: Player):
     if not player.check_cooldown(120.0):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+    if not player.check_player_mode([ServerMode.freeroam_world]):
         return
 
     player.set_health(100.0)
@@ -936,7 +936,7 @@ def armour(player: Player):
     if not player.check_cooldown(120.0):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+    if not player.check_player_mode([ServerMode.freeroam_world]):
         return
 
     player.set_armour(100.0)
@@ -1106,7 +1106,7 @@ def ban(player: Player, player_id: int, *reason: str):
     if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
-    target.is_data.banned = True
+    target.checks.banned = True
     target.ban_from_server(reason)
     return send_client_message_to_all(Colors.admin, f"Администратор {player.name}({player.id}) забанил игрока {target.name}({target.id}). Причина: {reason}.")
 
@@ -1124,7 +1124,7 @@ def unban(player: Player, player_name: str):
     if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
-    if not target.is_data.banned:
+    if not target.checks.banned:
         return player.send_error_message("Игрок не находится в бане!")
 
     DataBase.save_player_name(player_name, is_banned=False)
@@ -1345,6 +1345,7 @@ def setvip(player: Player, player_id: int, level: int):
     target.send_notification_message(
         f"Администратор {{{Colors.cmd_hex}}}{player.name}({player.id}){{{Colors.white_hex}}} изенил Ваш уровень VIP на {{{VIPData.colors[target.vip.level]}}}{VIPData.names[target.vip.level]}{{{Colors.white_hex}}}."
     )
+    send_client_message_to_all(Colors.ad, f"{target.name}({target.id}) получил {{{VIPData.colors[target.vip.level]}}}{VIPData.names[target.vip.level]} VIP{{{Colors.ad_hex}}}!")
     return player.send_notification_message(f"Вы изменили значение VIP игроку {{{Colors.cmd_hex}}}{target.name}({target.id}){{{Colors.white_hex}}} на {{{VIPData.colors[target.vip.level]}}}{VIPData.names[target.vip.level]}{{{Colors.white_hex}}}.")
 
 @cmd
@@ -1388,7 +1389,7 @@ def setgangzone(player: Player, gangzone_id: int, gang_id: int):
     gangzone.capture_time = 0
     gangzone.is_capture = False
     for player_gw in Player._registry.values():
-        if player_gw.mode == ServerWorldIDs.gangwar_world:
+        if player_gw.mode == ServerMode.gangwar_world:
             player_gw.reload_gangzones_for_player()
 
     return player.send_notification_message(f"Гангзона обновлена!")
@@ -1403,13 +1404,16 @@ def spawnveh(player: Player, vehicle_id: int, color_one: int, color_two: int):
     if not player.admin.check_command_access(6):
         return player.send_error_message("Вам недоступна эта команда!")
 
+    if not player.check_player_mode([ServerMode.freeroam_world]):
+        return
+
     try:
         target_vehicle_id = int(vehicle_id)
 
     except:
         player.send_error_message(f"Укажите ID!")
 
-    player.remove_unused_vehicle()
+    player.remove_unused_vehicle(ServerMode.freeroam_world)
     player_veh = Vehicle.create(
         target_vehicle_id,
         *player.get_pos(),
@@ -1442,7 +1446,7 @@ def vehicles(player: Player):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+    if not player.check_player_mode([ServerMode.freeroam_world]):
         return
 
     return Dialogs.show_vehicles_dialog(player)
@@ -1491,7 +1495,7 @@ def elegy(player: Player, color_one: int, color_two: int):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+    if not player.check_player_mode([ServerMode.freeroam_world]):
         return
 
     if player.money - 5000 < 0:
@@ -1509,7 +1513,7 @@ def elegy(player: Player, color_one: int, color_two: int):
     except:
         target_color_two = 1
 
-    player.remove_unused_vehicle()
+    player.remove_unused_vehicle(ServerMode.freeroam_world)
     player_veh = Vehicle.create(
         562,
         *player.get_pos(),
@@ -1530,7 +1534,7 @@ def infernus(player: Player, color_one: int, color_two: int):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+    if not player.check_player_mode([ServerMode.freeroam_world]):
         return
 
     if player.money - 5000 < 0:
@@ -1548,7 +1552,7 @@ def infernus(player: Player, color_one: int, color_two: int):
     except:
         target_color_two = 1
 
-    player.remove_unused_vehicle()
+    player.remove_unused_vehicle(ServerMode.freeroam_world)
     player_veh = Vehicle.create(
         411,
         *player.get_pos(),
@@ -1569,7 +1573,7 @@ def bullet(player: Player, color_one: int, color_two: int):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+    if not player.check_player_mode([ServerMode.freeroam_world]):
         return
 
     if player.money - 5000 < 0:
@@ -1587,7 +1591,7 @@ def bullet(player: Player, color_one: int, color_two: int):
     except:
         target_color_two = 1
 
-    player.remove_unused_vehicle()
+    player.remove_unused_vehicle(ServerMode.freeroam_world)
     player_veh = Vehicle.create(
         541,
         *player.get_pos(),
@@ -1608,7 +1612,7 @@ def sultan(player: Player, color_one: int, color_two: int):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+    if not player.check_player_mode([ServerMode.freeroam_world]):
         return
 
     if player.money - 5000 < 0:
@@ -1626,7 +1630,7 @@ def sultan(player: Player, color_one: int, color_two: int):
     except:
         target_color_two = 1
 
-    player.remove_unused_vehicle()
+    player.remove_unused_vehicle(ServerMode.freeroam_world)
     player_veh = Vehicle.create(
         560,
         *player.get_pos(),
@@ -1647,7 +1651,7 @@ def teleport(player: Player):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+    if not player.check_player_mode([ServerMode.freeroam_world]):
         return
 
     return Dialogs.show_teleports_dialog(player)
@@ -1659,7 +1663,7 @@ def flip(player: Player):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+    if not player.check_player_mode([ServerMode.freeroam_world]):
         return
 
     if not player.is_in_any_vehicle():
@@ -1680,13 +1684,25 @@ def tuning(player: Player):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerWorldIDs.freeroam_world]):
+    if not player.check_player_mode([ServerMode.freeroam_world]):
         return
 
     if not player.is_in_any_vehicle():
         return player.send_error_message("Вы должны находиться в транспорте!")
 
     return Dialogs.show_tuning_dialog(player)
+
+@cmd
+@Player.using_registry
+def clist(player: Player):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.check_player_mode([ServerMode.freeroam_world]):
+        return
+
+    return Dialogs.show_clist_dialog(player)
 
 @cmd
 @Player.using_registry
@@ -1699,7 +1715,7 @@ def pdata(player: Player, player_id: int):
     player.send_notification_message(f"{{{Colors.admin_pm_hex}}}Gun slots: {player_.gun_slots}")
     player.send_notification_message(f"{{{Colors.white_hex}}}VIP: {player_.vip}")
     player.send_notification_message(f"{{{Colors.green_hex}}}Admin: {player_.admin}")
-    player.send_notification_message(f"{{{Colors.red_hex}}}Is: {player_.is_data}")
+    player.send_notification_message(f"{{{Colors.red_hex}}}Is: {player_.checks}")
     player.send_notification_message(f"{{{Colors.dark_green_hex}}}Time: {player_.time}")
     player.send_notification_message(f"{{{Colors.aztecas_hex}}}Settings: {player_.settings}")
     player.send_notification_message(f"{{{Colors.ballas_hex}}}Timers: {player_.timers}")
@@ -1709,3 +1725,9 @@ def pdata(player: Player, player_id: int):
         player.send_notification_message(f"{{{Colors.silver_hex}}}Vehicle in registry: {Vehicle._registry[player_.get_vehicle_id()]}")
     except:
         player.send_notification_message(f"{{{Colors.silver_hex}}}Vehicle in registry: Not found")
+
+    player.send_notification_message(f"{player_} Attributes:")
+    for attr, val in vars(player_).items():
+
+
+        player.send_notification_message(f"Attr: {attr} | Val: {val}")

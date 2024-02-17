@@ -1,5 +1,5 @@
 from dataclasses import dataclass, field
-from .utils import Colors, ServerWorldIDs, convert_seconds
+from .utils.data import Colors, ServerMode, convert_seconds
 from pysamp import text_draw_show_for_player
 from pystreamer.dynamiccp import DynamicCheckpoint
 from pystreamer.dynamicpickup import DynamicPickup
@@ -229,10 +229,10 @@ gangs = { # ID: Gang inst
         Colors.grove_hex,
         [],
         62,
-        DynamicCheckpoint.create(2455.5740, -1706.3229, 1013.5078, 1.0, world_id=ServerWorldIDs.gangwar_world, interior_id=2, stream_distance=25.0), # Grove warehouse
+        DynamicCheckpoint.create(2455.5740, -1706.3229, 1013.5078, 1.0, world_id=ServerMode.gangwar_world, interior_id=2, stream_distance=25.0), # Grove warehouse
         [
-            DynamicPickup.create(1318, 23, 2495.4265, -1691.1404, 14.7656, world_id=ServerWorldIDs.gangwar_world, interior_id=0), # Grove enter
-            DynamicPickup.create(1318, 23, 2468.8428, -1698.2579, 1013.5078, world_id=ServerWorldIDs.gangwar_world) # Grove exit
+            DynamicPickup.create(1318, 23, 2495.4265, -1691.1404, 14.7656, world_id=ServerMode.gangwar_world, interior_id=0), # Grove enter
+            DynamicPickup.create(1318, 23, 2468.8428, -1698.2579, 1013.5078, world_id=ServerMode.gangwar_world) # Grove exit
         ],
         [2452.0325, -1700.2831, 1013.5078], # Spawn pos
         2 # Interior id
@@ -247,10 +247,10 @@ gangs = { # ID: Gang inst
         Colors.ballas_hex,
         [],
         59,
-        DynamicCheckpoint.create(-42.5511, 1412.5063, 1084.4297, 1.0, world_id=ServerWorldIDs.gangwar_world, interior_id=8, stream_distance=25.0),
+        DynamicCheckpoint.create(-42.5511, 1412.5063, 1084.4297, 1.0, world_id=ServerMode.gangwar_world, interior_id=8, stream_distance=25.0),
         [
-            DynamicPickup.create(1318, 23, 2022.8790, -1120.2637, 26.4210, world_id=ServerWorldIDs.gangwar_world, interior_id=0),
-            DynamicPickup.create(1318, 23, -42.6055, 1405.7949, 1084.4297, world_id=ServerWorldIDs.gangwar_world)
+            DynamicPickup.create(1318, 23, 2022.8790, -1120.2637, 26.4210, world_id=ServerMode.gangwar_world, interior_id=0),
+            DynamicPickup.create(1318, 23, -42.6055, 1405.7949, 1084.4297, world_id=ServerMode.gangwar_world)
         ],
         [-49.8575, 1408.5522, 1084.4297],
         8
@@ -265,10 +265,10 @@ gangs = { # ID: Gang inst
         Colors.vagos_hex,
         [],
         60,
-        DynamicCheckpoint.create(333.0990,1118.9160,1083.8903, 1.0, world_id=ServerWorldIDs.gangwar_world, interior_id=5, stream_distance=25.0),
+        DynamicCheckpoint.create(333.0990,1118.9160,1083.8903, 1.0, world_id=ServerMode.gangwar_world, interior_id=5, stream_distance=25.0),
         [
-            DynamicPickup.create(1318, 23, 2756.2825, -1182.4691, 69.3998, world_id=ServerWorldIDs.gangwar_world, interior_id=0),
-            DynamicPickup.create(1318, 23, 318.6152, 1114.8966, 1083.8828, world_id=ServerWorldIDs.gangwar_world)
+            DynamicPickup.create(1318, 23, 2756.2825, -1182.4691, 69.3998, world_id=ServerMode.gangwar_world, interior_id=0),
+            DynamicPickup.create(1318, 23, 318.6152, 1114.8966, 1083.8828, world_id=ServerMode.gangwar_world)
         ],
         [321.0667, 1123.1947, 1083.8828],
         5
@@ -283,10 +283,10 @@ gangs = { # ID: Gang inst
         Colors.aztecas_hex,
         [],
         58,
-        DynamicCheckpoint.create(223.0524, 1249.5559, 1082.1406, 1.0, world_id=ServerWorldIDs.gangwar_world, interior_id=2, stream_distance=25.0),
+        DynamicCheckpoint.create(223.0524, 1249.5559, 1082.1406, 1.0, world_id=ServerMode.gangwar_world, interior_id=2, stream_distance=25.0),
         [
-            DynamicPickup.create(1318, 23, 2185.8176, -1814.6786, 13.5469, world_id=ServerWorldIDs.gangwar_world, interior_id=0),
-            DynamicPickup.create(1318, 23, 225.756989, 1240.000000, 1082.149902, world_id=ServerWorldIDs.gangwar_world)
+            DynamicPickup.create(1318, 23, 2185.8176, -1814.6786, 13.5469, world_id=ServerMode.gangwar_world, interior_id=0),
+            DynamicPickup.create(1318, 23, 225.756989, 1240.000000, 1082.149902, world_id=ServerMode.gangwar_world)
         ],
         [219.6040, 1241.9434, 1082.1406],
         2
@@ -301,10 +301,10 @@ gangs = { # ID: Gang inst
         Colors.rifa_hex,
         [],
         61,
-        DynamicCheckpoint.create(-71.8009, 1366.5933, 1080.2185, 1.0, world_id=ServerWorldIDs.gangwar_world, interior_id=6, stream_distance=25.0),
+        DynamicCheckpoint.create(-71.8009, 1366.5933, 1080.2185, 1.0, world_id=ServerMode.gangwar_world, interior_id=6, stream_distance=25.0),
         [
-            DynamicPickup.create(1318, 23, 2787.0759, -1926.1780, 13.5469, world_id=ServerWorldIDs.gangwar_world, interior_id=0),
-            DynamicPickup.create(1318, 23, -68.8279, 1351.3553, 1080.2109, world_id=ServerWorldIDs.gangwar_world)
+            DynamicPickup.create(1318, 23, 2787.0759, -1926.1780, 13.5469, world_id=ServerMode.gangwar_world, interior_id=0),
+            DynamicPickup.create(1318, 23, -68.8279, 1351.3553, 1080.2109, world_id=ServerMode.gangwar_world)
         ],
         [-59.1456, 1364.5851, 1080.2109],
         6

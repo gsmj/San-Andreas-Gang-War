@@ -1,18 +1,14 @@
 from pysamp import (
     on_gamemode_init,
-    on_gamemode_exit,
     send_rcon_command,
     set_game_mode_text,
-    set_name_tag_draw_distance,
     enable_stunt_bonus_for_all,
     manual_vehicle_engine_and_lights,
     disable_interior_enter_exits,
-    limit_global_chat_radius,
     show_player_markers,
     create_3d_text_label,
     set_world_time,
     send_client_message_to_all,
-    limit_player_marker_radius,
     show_name_tags
 )
 from datetime import datetime
@@ -26,18 +22,17 @@ from pystreamer.dynamicpickup import DynamicPickup
 from pydpc.driftcounter.callbacks import register as register_drift_callbacks
 from pydpc.driftcounter.drift import Drift
 from pydpc.driftcounter import *
-from .libs.gang import gangs, DefaultGangZones, GangZoneData
+from .libs.gang import GangZoneData
+from .libs.gangzones import GangZones
 from .libs.player import Player
-from .libs.vehicle import Vehicle, VehicleIDs
-from .libs.utils import *
+from .libs.vehicle import Vehicle
+from .libs.utils.data import *
 from .libs.database import DataBase
 from .libs.commands import *
 from .libs.textdraws import TextDraws
 from .libs.objects import Objects
-from .libs.version import __version__
-from .libs.consts import NO_VEHICLE_OWNER
+from .libs import __version__
 from .libs.fun.math import MathTest
-import os
 import random
 encode()
 
@@ -70,6 +65,7 @@ def on_ready() -> None:
     DataBase.create_gangzones()
     TextDraws.load()
     Objects.load()
+    GangZones.load()
     gangzones = DataBase.load_gangzones_order_by()
     if gangzones:
         for gangzone in gangzones:
@@ -92,7 +88,7 @@ def on_ready() -> None:
     vehicles = DataBase.load_vehicles_order_by()
     if vehicles:
         for vehicle in vehicles:
-            if vehicle.virtual_world != ServerWorldIDs.freeroam_world:
+            if vehicle.virtual_world != ServerMode.freeroam_world:
                 veh = Vehicle.create(
                     vehicle.model_id,
                     vehicle.x,
@@ -145,8 +141,10 @@ def every_second():
                 Player.end_capture(gangzone)
 
     if ServerInfo.current_time.hour != datetime.now(tz=ZoneInfo("Europe/Moscow")).hour:
-        time = datetime.now(tz=ZoneInfo("Europe/Moscow"))
-        ServerInfo.current_time = time
+        ServerInfo.current_time = datetime.now(tz=ZoneInfo("Europe/Moscow"))
+        if ServerInfo.current_time.hour == 0:
+            DataBase.create_analytics()
+
         set_world_time(ServerInfo.current_time.hour)
         send_client_message_to_all(Colors.ad, "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
         send_client_message_to_all(Colors.ad, f"Наш сайт: {{{Colors.link_hex}}}sanandreasonline.github.io")

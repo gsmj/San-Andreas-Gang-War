@@ -1,5 +1,4 @@
 from pysamp.player import Player as BasePlayer
-from pysamp.dialog import Dialog
 from pysamp.playertextdraw import PlayerTextDraw
 from pysamp.textdraw import TextDraw
 from pystreamer.dynamicpickup import DynamicPickup
@@ -22,16 +21,17 @@ from pysamp import (
     send_client_message_to_all,
     kick
 )
-from .utils import *
-from .consts import *
+from .utils.data import *
+from .utils.consts import *
 from functools import wraps
 from datetime import datetime
 from zoneinfo import ZoneInfo
 from .gang import gangs, GangZoneData, Gang
 from .textdraws import TextDraws
-from .version import __version__
+from . import __version__
 from .database import DataBase
 from .vehicle import Vehicle, VehicleData, VehicleTypes, VehicleComponents
+from .gangzones import GangZones
 from .playerdata import *
 from .fun.math import MathTest
 from math import sqrt
@@ -52,8 +52,9 @@ class Player(BasePlayer):
         self.last_ip: str = self.get_ip()
         self.registration_data: datetime = None
         self.score: int = 0
-        self.money: int = 100000
+        self.money: int = 0
         self.donate: int = 0
+        self.dm_rating: int = 0
         self.kills: int = 0
         self.deaths: int = 0
         self.heals: int = 0
@@ -66,7 +67,7 @@ class Player(BasePlayer):
         self.vehicle_speedometer: dict = {}
         self.drift_counter: dict = {}
         self.timers: PlayerTimers = PlayerTimers()
-        self.is_data: PlayerIs = PlayerIs()
+        self.checks: PlayerChecks = PlayerChecks()
         self.time: PlayerTime = PlayerTime()
         self.drift: PlayerDrift = PlayerDrift()
         self.vip: PlayerVIP = PlayerVIP()
@@ -126,6 +127,23 @@ class Player(BasePlayer):
         if show_text:
             self.game_text(string, 1500, 1)
 
+    def set_dm_rating(self, amount: int, increase: bool = True, show_text: bool = True) -> None:
+        if increase:
+            self.dm_rating += amount
+            string = f"~b~+{amount}"
+
+        else:
+            if (self.dm_rating - amount) < 0:
+                self.dm_rating = 0
+                string = f"~r~-0"
+
+            else:
+                self.dm_rating -= amount
+                string = f"~r~-{amount}"
+
+        if show_text:
+            self.game_text(string, 1500, 1)
+
     def take_money_ex(self, amount: int, show_text: bool = True) -> None:
         self.money -= amount
         self.set_money(self.money)
@@ -152,6 +170,14 @@ class Player(BasePlayer):
         self.give_weapon(self.gun_slots.assault_rifle, 100)
         self.give_weapon(self.gun_slots.long_rifle, 100)
 
+    def give_deathmatch_guns(self, mode: int) -> None:
+        if mode == ServerMode.deathmatch_world_oc_deagle:
+            return self.give_weapon(24, 100)
+
+        self.give_weapon(24, 100)
+        self.give_weapon(25, 100)
+        self.give_weapon(31, 100)
+
     def update_vehicle_inst(self, vehice: Vehicle) -> None:
         self.vehicle.inst = vehice
         return
@@ -164,7 +190,7 @@ class Player(BasePlayer):
 
     def mute_timer(self) -> None:
         self.send_notification_message("Время муто вышло.")
-        self.is_data.muted = False
+        self.checks.muted = False
         self.time.mute = 0
         self.timers.mute_id = TIMER_ID_NONE
 
@@ -178,11 +204,11 @@ class Player(BasePlayer):
 
     def jail_timer(self) -> None:
         self.send_notification_message("Вас выпустили из деморгана.")
-        self.is_data.jailed = False
+        self.checks.jailed = False
         self.time.jail = 0
         self.timers.jail_id = TIMER_ID_NONE
-        self.set_mode(ServerWorldIDs.freeroam_world)
-        return self.enable_freeroam_selector()
+        self.tmp.mode_after_selector = ServerMode.freeroam_world
+        return self.enable_skin_selector()
 
     def create_speedometer(self) -> dict[int, "PlayerTextDraw"]:
         self.vehicle_speedometer[0] = PlayerTextDraw.create(self, 626.000000, 384.540008, "usebox")
@@ -370,8 +396,18 @@ class Player(BasePlayer):
             if self.kills <= key:
                 return key, value
 
-    def remove_unused_vehicle(self):
-        if self.vehicle.inst:
+    def get_dm_color(self) -> None:
+        for key, value in DMRatingColors.colors.items():
+            if self.dm_rating <= key:
+                break
+
+        if not value: # If dm_rating is veryyy big
+            value = "FFD700"
+
+        return value
+
+    def remove_unused_vehicle(self, mode: int):
+        if self.vehicle.inst and self.mode == mode:
             Vehicle.remove_unused_player_vehicle(self.vehicle.inst)
             # self.vehicle.inst = None
 
@@ -394,11 +430,11 @@ class Player(BasePlayer):
 
     def show_bottom_commands(self):
         self.hide_bottom_commands()
-        if self.mode == ServerWorldIDs.gangwar_world:
+        if self.mode == ServerMode.gangwar_world:
             for td in TextDraws.commands_bottom_gw.values():
                 td.show_for_player(self)
 
-        if self.mode == ServerWorldIDs.freeroam_world:
+        if self.mode == ServerMode.freeroam_world:
             for td in TextDraws.commands_bottom.values():
                 td.show_for_player(self)
 
@@ -432,14 +468,25 @@ class Player(BasePlayer):
     def set_random_color(self) -> None:
         return self.set_color(randint(0, 16777215))
 
+    def set_random_color_ex(self) -> None:
+        self.color = randint(0, 16777215)
+        return self.set_color(self.color)
+
+    def set_rainbow_color(self) -> None:
+        if self.vip.random_clist_iterator == len(RainbowColors.colors):
+            self.vip.random_clist_iterator = 0
+
+        self.set_color(RainbowColors.colors[self.vip.random_clist_iterator])
+        self.vip.random_clist_iterator += 1
+
     def kick_if_not_logged(self) -> None:
-        if not self.is_data.logged:
+        if not self.checks.logged:
             Dialogs.show_kick_dialog(self)
             self.send_error_message("Введите /q (/quit) чтобы выйти!")
             return set_timer(self.kick, 1000, False)
 
     def kick_if_not_logged_or_jailed(self) -> None:
-        if not self.is_data.logged or self.is_data.jailed:
+        if not self.checks.logged or self.checks.jailed:
             self.send_error_message("Введите /q (/quit) чтобы выйти!")
             return set_timer(self.kick, 1000, False)
 
@@ -449,7 +496,7 @@ class Player(BasePlayer):
         return set_timer(self.kick, 1000, False)
 
     def ban_from_server(self, reason: str) -> None:
-        if self.is_data.banned:
+        if self.checks.banned:
             Dialogs.show_banned_dialog(self)
             self.send_error_message("Введите /q (/quit) чтобы выйти!")
             return set_timer(self.ban_ex, 1000, False, reason)
@@ -470,6 +517,23 @@ class Player(BasePlayer):
         for i in gangzones:
             gang_zone_hide_for_player(self.id, i.id)
 
+    def show_deathmatch_gangzones(self) -> None:
+        self.hide_deathmatch_gangzones()
+        gz = GangZones.deathmatch[self.mode]
+        gz.show_for_player(self, 0xBBBBBBAA)
+
+    def hide_deathmatch_gangzones(self) -> None:
+        for gz in GangZones.deathmatch.values():
+            gz.hide_for_player(self)
+
+    def is_in_deathmatch_gangzone(self) -> None:
+        gz = GangZones.deathmatch[self.mode]
+        if not self.is_in_area(gz.min_x, gz.min_y, gz.max_x, gz.max_y):
+            self.send_notification_message("Вы были перемещены!")
+            return self.spawn()
+
+        return
+
     def is_in_area(self, min_x: float, min_y: float, max_x: float, max_y: float) -> bool:
         x, y, z = self.get_pos()
         if ((x <= max_x and x >= min_x) and (y <= max_y and y >= min_y)):
@@ -486,24 +550,24 @@ class Player(BasePlayer):
             self.gang.spawn_pos[2],
             0.0, 0, 0, 0, 0, 0, 0)
 
-    def enable_gangwar_mode(self, first_show: bool = True):
+    def enable_gangwar_mode(self):
         self.show_bottom_commands()
-        self.remove_unused_vehicle()
+        self.reset_weapons()
+        self.remove_unused_vehicle(ServerMode.freeroam_world)
         self.set_pos(self.gang.spawn_pos[0], self.gang.spawn_pos[1], self.gang.spawn_pos[2])
         self.set_camera_behind()
         self.set_interior(self.gang.interior_id)
-        if first_show: # Если показывается первый раз
-            self.set_health(100.0)
-            self.set_skin_ex(random.choice(self.gang.skins))
-            self.set_color_ex(self.gang.color)
-            self.show_gangzones_for_player()
-            if self.gang.is_capturing:
-                gz = GangZoneData.get_from_registry(self.gang.capture_id)
-                gz_db = DataBase.load_gangzone(gz.gangzone_id)
-                x, y = get_center(gz_db.min_x, gz_db.max_x, gz_db.min_y, gz_db.max_y)
-                gang_zone_flash_for_player(self.id, self.gang.capture_id, gangs[gz.gang_atk_id].color)
-                self.show_capture_textdraws()
-            self.game_text(f"Welcome~n~{self.gang.game_text_color}{self.get_name()}", 2000, 1)
+        self.set_health(100.0)
+        self.set_skin_ex(random.choice(self.gang.skins))
+        self.set_color_ex(self.gang.color)
+        self.show_gangzones_for_player()
+        if self.gang.is_capturing:
+            gz = GangZoneData.get_from_registry(self.gang.capture_id)
+            gz_db = DataBase.load_gangzone(gz.gangzone_id)
+            x, y = get_center(gz_db.min_x, gz_db.max_x, gz_db.min_y, gz_db.max_y)
+            gang_zone_flash_for_player(self.id, self.gang.capture_id, gangs[gz.gang_atk_id].color)
+            self.show_capture_textdraws()
+        self.game_text(f"Welcome~n~{self.gang.game_text_color}{self.get_name()}", 2000, 1)
 
         return self.set_spawn_info(
             255,
@@ -513,7 +577,8 @@ class Player(BasePlayer):
             self.gang.spawn_pos[2],
             0.0, 0, 0, 0, 0, 0, 0)
 
-    def enable_freeroam_selector(self):
+    def enable_skin_selector(self):
+        self.set_mode(ServerMode.default_world)
         self.set_mode(randint(100, 500))
         self.toggle_controllable(False)
         self.set_skin_ex(FreeroamSkins.skins[0])
@@ -522,12 +587,12 @@ class Player(BasePlayer):
         self.set_camera_position(208.7765, -3.9595, 1001.2178)
         self.set_camera_look_at(204.6633, -6.5563, 1001.2109)
         self.set_interior(5)
-        self._freeroam_selector = 0
-        self.is_data.selecting_skin = True
+        self.tmp.freeroam_selector = 0
+        self.checks.selecting_skin = True
         return self.show_class_selector_textdraws()
 
     def set_freeroam_spawn_info(self):
-        i = randint(0, len(RandomSpawns.spawns))
+        i = randint(0, len(RandomSpawns.spawns) - 1)
         self.set_spawn_info(
             255,
             self.skin,
@@ -539,12 +604,15 @@ class Player(BasePlayer):
 
     def enable_freeroam_mode(self):
         self.show_bottom_commands()
-        self.remove_unused_vehicle()
+        self.remove_unused_vehicle(ServerMode.freeroam_world)
         self.set_camera_behind()
         self.set_interior(0)
         self.set_color_ex(randint(0, 16777215))
+        self.reset_weapons()
+        self.set_health(100.0)
         self.disable_gangzones_for_player()
-        i = randint(0, len(RandomSpawns.spawns))
+        self.hide_deathmatch_gangzones()
+        i = randint(0, len(RandomSpawns.spawns) - 1)
         self.set_pos(RandomSpawns.spawns[i][0], RandomSpawns.spawns[i][1], RandomSpawns.spawns[i][2])
         self.set_facing_angle(RandomSpawns.spawns[i][3])
         self.set_freeroam_spawn_info()
@@ -552,7 +620,6 @@ class Player(BasePlayer):
         return self.game_text(f"Welcome~n~{self.get_name()}", 2000, 1)
 
     def set_jail_spawn_info(self):
-        i = randint(0, len(RandomSpawns.spawns))
         self.set_spawn_info(
             254, # 254 Команда для игроков в ДМГ, чтобы не было урона
             167,
@@ -563,17 +630,48 @@ class Player(BasePlayer):
             0, 0, 0, 0, 0, 0)
 
     def enable_jail_mode(self):
-        self.remove_unused_vehicle()
+        self.remove_unused_vehicle(ServerMode.freeroam_world)
         self.set_skin(167)
         self.set_team(254)
         self.set_color_ex(Colors.jail)
         self.disable_gangzones_for_player()
+        self.hide_deathmatch_gangzones()
         self.set_pos(5509.365234, 1245.812866, 8.000000)
         self.set_jail_spawn_info()
         self.reset_weapons()
         self.send_notification_message(f"Вы выйдите из деморгана через {{{Colors.cmd_hex}}}{self.time.jail}{{{Colors.white_hex}}} минут.")
-        self.timers.jail_id = set_timer(self.jail_timer, int(self.time.jail * 60000), False)
-        return self.game_text(f"Welcome~n~{self.get_name()}", 2000, 1)
+        if self.timers.jail_id == TIMER_ID_NONE:
+            self.timers.jail_id = set_timer(self.jail_timer, int(self.time.jail * 60000), False)
+
+
+    def set_deathmatch_spawn_info(self, mode: int):
+        i = randint(0, len(DeathMatchSpawns.spawns[mode]) - 1)
+        self.set_spawn_info(
+            255,
+            self.skin,
+            DeathMatchSpawns.spawns[mode][i][0],
+            DeathMatchSpawns.spawns[mode][i][1],
+            DeathMatchSpawns.spawns[mode][i][2],
+            DeathMatchSpawns.spawns[mode][i][3],
+            0, 0, 0, 0, 0, 0)
+
+    def enable_deathmatch_mode(self, mode: int):
+        i = randint(0, len(DeathMatchSpawns.spawns[mode]) - 1)
+        self.hide_bottom_commands()
+        self.remove_unused_vehicle(ServerMode.freeroam_world)
+        self.set_camera_behind()
+        self.set_interior(0)
+        self.set_color_ex(Colors.deathmatch)
+        self.set_health(100.0)
+        self.reset_weapons()
+        self.disable_gangzones_for_player()
+        self.show_deathmatch_gangzones()
+        self.give_deathmatch_guns(self.mode)
+        self.set_pos(DeathMatchSpawns.spawns[mode][i][0], DeathMatchSpawns.spawns[mode][i][1], DeathMatchSpawns.spawns[mode][i][2])
+        self.set_facing_angle(DeathMatchSpawns.spawns[mode][i][3])
+        self.set_deathmatch_spawn_info(mode)
+        if self.timers.deathmatch_in_area == TIMER_ID_NONE:
+            self.timers.deathmatch_in_area = set_timer(self.is_in_deathmatch_gangzone, 1000, True)
 
     def prox_detector(self, max_range: float, color: int, message: str, max_ratio: float = 1.6) -> None:
         if not self.get_pos():
@@ -627,6 +725,7 @@ class Player(BasePlayer):
         self.score = player_db.score
         self.money = player_db.money
         self.donate = player_db.donate
+        self.dm_rating = player_db.dm_rating
         self.kills = player_db.kills
         self.deaths = player_db.deaths
         self.heals = player_db.heals
@@ -635,29 +734,25 @@ class Player(BasePlayer):
         self.gang = gangs[self.gang_id]
         self.vip.level=player_db.vip_level
         self.admin.level=player_db.admin_level
-        self.is_data.muted=player_db.is_muted
-        self.is_data.jailed=player_db.is_jailed
-        self.is_data.logged=True
-        self.is_data.banned=player_db.is_banned
+        self.checks.muted=player_db.is_muted
+        self.checks.jailed=player_db.is_jailed
+        self.checks.logged=True
+        self.checks.banned=player_db.is_banned
         self.time.jail=player_db.jail_time
         self.time.mute=player_db.mute_time
         self.settings.disabled_ping_td=player_settings.disabled_ping_td
         self.settings.disabled_global_chat_gw=player_settings.disabled_global_chat_gw
-        self.play_sound(1052, x=0.0, y=0.0, z=0.0)
         self.set_max_gun_skill()
         self.reset_money()
-        self.set_money_ex(self.money, show_text=False)
+        self.give_money(self.money)
         self.set_score(self.score)
         self.update_freeroam_gun_slots(DataBase.get_player_freeroam_gun_slots(self))
-        if not self.is_data.jailed:
+        send_client_message_to_all(Colors.white, f"Игрок {{{Colors.cmd_hex}}}{self.name}({self.id}){{{Colors.white_hex}}} зашёл на сервер!")
+        if not self.checks.jailed:
             return Dialogs.show_select_mode_dialog(self)
 
-        self.set_mode(ServerWorldIDs.jail_world)
+        self.set_mode(ServerMode.jail_world)
         return self.toggle_spectating(False)
-
-
-    def show_credits_dialog(self):
-        return Dialogs.show_credits_dialog(self)
 
     def show_class_selector_textdraws(self):
         select_text_draw(self.id, Colors.textdraw)
@@ -698,7 +793,7 @@ class Player(BasePlayer):
                 gang_zone_flash_for_player(player.id, gz.gangzone_id, gangs[gz.gang_atk_id].color)
                 player.show_capture_textdraws()
 
-        return create_dynamic_map_icon(x, y, 0.0, gangs[gz.gang_atk_id].map_icon, 0, world_id=ServerWorldIDs.gangwar_world, interior_id=0, style=1)
+        return create_dynamic_map_icon(x, y, 0.0, gangs[gz.gang_atk_id].map_icon, 0, world_id=ServerMode.gangwar_world, interior_id=0, style=1)
 
     @staticmethod
     def end_capture(gangzone: GangZoneData):
@@ -761,6 +856,7 @@ class Player(BasePlayer):
     def on_connect_handle(self) -> None:
         self.send_debug_message("on_connect_handle", f"Player: {self}")
         if self.is_connected():
+            DataBase.update_analytics()
             for i in range(25):
                 self.send_notification_message(" ")
 
@@ -768,6 +864,7 @@ class Player(BasePlayer):
             self.send_notification_message(f"Добро пожаловать на сервер {{{Colors.cmd_hex}}}{ServerInfo.name_short}{{{Colors.white_hex}}}!")
             self.send_notification_message(f"Версия: {{{Colors.cmd_hex}}}{__version__}{{{Colors.white_hex}}}!")
             self.send_notification_message(f"Created by: {{{Colors.vagos_hex}}}Ykpauneu{{{Colors.white_hex}}} & {{{Colors.rifa_hex}}}Rein.{{{Colors.white_hex}}}!")
+            self.send_notification_message(f"Сервер посетили: {{{Colors.cmd_hex}}}{DataBase.get_analytics()}{{{Colors.white_hex}}} игроков.")
             self.show_server_logotype()
             self.show_ping_textdraw()
             self.timers.every_sec = set_timer(self.every_second, 1000, True)
@@ -788,8 +885,11 @@ class Player(BasePlayer):
         if self.vehicle.inst:
             self.vehicle.inst.set_owner(NO_VEHICLE_OWNER)
 
+        if self.timers.deathmatch_in_area != TIMER_ID_NONE:
+            kill_timer(self.timers.deathmatch_in_area)
+
         kill_timer(self.timers.every_sec)
-        if self.is_data.logged:
+        if self.checks.logged:
             DataBase.save_player(
                 self,
                 password=self.password,
@@ -799,6 +899,7 @@ class Player(BasePlayer):
                 score=self.score,
                 money=self.money,
                 donate=self.donate,
+                dm_rating=self.dm_rating,
                 kills=self.kills,
                 deaths=self.deaths,
                 heals=self.heals,
@@ -806,10 +907,9 @@ class Player(BasePlayer):
                 gang_id=self.gang_id,
                 vip_level=self.vip.level,
                 admin_level=self.admin.level,
-                vip_gangwar_template = "0, 0, 0",
-                is_muted=self.is_data.muted,
-                is_jailed=self.is_data.jailed,
-                is_banned=self.is_data.banned,
+                is_muted=self.checks.muted,
+                is_jailed=self.checks.jailed,
+                is_banned=self.checks.banned,
                 jail_time=self.time.jail,
                 mute_time=self.time.mute
                 )
@@ -840,33 +940,49 @@ class Player(BasePlayer):
 
     def on_spawn_handle(self) -> None:
         self.send_debug_message("on_spawn_handle", f"Player: {self} | Mode: {self.get_virtual_world()} | Interior {self.get_interior()}")
-        if self.mode == ServerWorldIDs.gangwar_world or self.mode == ServerWorldIDs.gangwar_world:
+        if self.mode == ServerMode.gangwar_world or self.mode == ServerMode.gangwar_world:
             return self.enable_gangwar_mode()
 
-        if self.is_data.selecting_skin: # Если игрок выбирает скин во freeroam, то включить селектор. Так как игрок уже заспавнен
-            return self.enable_freeroam_selector()
+        if self.checks.selecting_skin: # Если игрок выбирает скин во freeroam, то включить селектор. Так как игрок уже заспавнен
+            self.send_debug_message("on_spawn_handle", "selecting_skin")
+            return self.enable_skin_selector()
 
-        if self.mode == ServerWorldIDs.freeroam_world: # Если игрок в обычном фрироме и выбрал скин, то просто ставить позицию т.д
+        if self.mode == ServerMode.freeroam_world: # Если игрок в обычном фрироме и выбрал скин, то просто ставить позицию т.д
             return self.enable_freeroam_mode()
 
-        if self.mode == ServerWorldIDs.jail_world:
+        if self.mode == ServerMode.jail_world:
             return self.enable_jail_mode()
 
     def on_death_handle(self, killer: "Player", reason: int) -> None:
         self.send_debug_message("on_death_handle", f"Player: {self} | Killer: {killer}")
         self.kick_if_not_logged()
         self.deaths += 1
-        if self.mode == ServerWorldIDs.gangwar_world or self.mode == ServerWorldIDs.gangwar_world:
+        if self.mode == ServerMode.gangwar_world or self.mode == ServerMode.gangwar_world:
             self.masks = 0
             self.heals = 0
             self.set_gangwar_spawn_info()
 
-        if self.mode == ServerWorldIDs.freeroam_world:
+        if self.mode == ServerMode.freeroam_world:
             self.set_freeroam_spawn_info()
             self.send_death_message(killer, self, reason)
             killer.send_death_message(killer, self, reason)
 
-        if self.mode == ServerWorldIDs.jail_world:
+        if self.mode in ServerMode.deathmatch_worlds:
+            if self.timers.deathmatch_in_area != TIMER_ID_NONE:
+                kill_timer(self.timers.deathmatch_in_area)
+
+            self.set_deathmatch_spawn_info(self.mode)
+            self.send_death_message(killer, self, reason)
+            self.set_dm_rating(randint(1, 15), increase=False)
+            killer.send_death_message(killer, self, reason)
+            need_restore = 100 - killer.get_health()
+            if need_restore != 0.0:
+                killer.set_health(killer.get_health() + need_restore)
+
+            killer.set_dm_rating(randint(1, 15))
+            killer.give_deathmatch_guns(killer.mode)
+
+        if self.mode == ServerMode.jail_world:
             return self.set_jail_spawn_info()
 
         if killer.id == INVALID_PLAYER_ID:
@@ -896,14 +1012,14 @@ class Player(BasePlayer):
                 if answer == MathTest.correct_answer:
                     return MathTest.send_winner_message(self)
 
-        if self.is_data.muted:
+        if self.checks.muted:
             self.set_chat_bubble("Пытается что-то сказать.", Colors.red, 20.0, 10000)
             return self.send_error_message("Доступ в чат заблокирован!")
 
-        if self.mode == ServerWorldIDs.freeroam_world:
+        if self.mode == ServerMode.freeroam_world or self.mode in ServerMode.deathmatch_worlds:
             return send_client_message_to_all(self.color, f"{self.get_name()}({self.get_id()}):{{{Colors.white_hex}}} {text}")
 
-        if self.mode == ServerWorldIDs.gangwar_world and self.settings.disabled_global_chat_gw:
+        if self.mode == ServerMode.gangwar_world and self.settings.disabled_global_chat_gw:
             return send_client_message_to_all(self.color, f"{self.get_name()}({self.get_id()}):{{{Colors.white_hex}}} {text}")
 
         self.set_chat_bubble(text, -1, 20.0, 10000)
@@ -1067,7 +1183,7 @@ class Player(BasePlayer):
                     0
                 )
 
-        if self.get_state() == PLAYER_STATE_DRIVER and self.mode == ServerWorldIDs.freeroam_world:
+        if self.get_state() == PLAYER_STATE_DRIVER and self.mode == ServerMode.freeroam_world:
             if new_keys == 1 or new_keys == 9 or new_keys == 33 and old_keys != 1 or old_keys != 9 or old_keys != 33:
                 if self.vehicle.inst.is_car:
                     self.vehicle.inst.add_component(1010)
@@ -1082,7 +1198,7 @@ class Player(BasePlayer):
                 self.create_speedometer()
                 self.show_speedometer()
                 self.vehicle_speedometer[5] = set_timer(self.update_speedometer_velocity, 200, True, self.vehicle.inst)
-                if self.mode == ServerWorldIDs.freeroam_world:
+                if self.mode == ServerMode.freeroam_world:
                     self.create_drift_counter()
             else:
                 return self.vehicle.inst.set_params_ex(
@@ -1100,7 +1216,7 @@ class Player(BasePlayer):
             if self.vehicle.inst.is_car:
                 kill_timer(self.vehicle_speedometer[5])
                 self.hide_speedometer()
-                if self.mode == ServerWorldIDs.freeroam_world:
+                if self.mode == ServerMode.freeroam_world:
                     self.destroy_drift_counter()
 
             else:
@@ -1116,48 +1232,54 @@ class Player(BasePlayer):
 
     def on_click_textdraw_handle(self, clicked: TextDraw) -> None:
         if clicked.id == TextDraws.class_selection_td[0].id: # Left
-            if self._freeroam_selector == 0:
-                self._freeroam_selector = len(FreeroamSkins.skins) - 1
+            if self.tmp.freeroam_selector == 0:
+                self.tmp.freeroam_selector = len(FreeroamSkins.skins) - 1
 
             else:
-                self._freeroam_selector -= 1
+                self.tmp.freeroam_selector -= 1
 
-            self.set_skin_ex(FreeroamSkins.skins[self._freeroam_selector])
+            self.set_skin_ex(FreeroamSkins.skins[self.tmp.freeroam_selector])
 
         if clicked.id == TextDraws.class_selection_td[1].id: # Right
-            if self._freeroam_selector == len(FreeroamSkins.skins) - 1:
-                self._freeroam_selector = 0
+            if self.tmp.freeroam_selector == len(FreeroamSkins.skins) - 1:
+                self.tmp.freeroam_selector = 0
 
             else:
-                self._freeroam_selector += 1
+                self.tmp.freeroam_selector += 1
 
-            self.set_skin_ex(FreeroamSkins.skins[self._freeroam_selector])
+            self.set_skin_ex(FreeroamSkins.skins[self.tmp.freeroam_selector])
 
         if clicked.id == TextDraws.class_selection_td[2].id: # Done
-            self.set_skin_ex(FreeroamSkins.skins[self._freeroam_selector])
+            self.set_skin_ex(FreeroamSkins.skins[self.tmp.freeroam_selector])
             self.hide_class_selector_textdraws()
             self.toggle_controllable(True)
-            del self._freeroam_selector
-            self.is_data.selecting_skin = False
-            self.set_mode(ServerWorldIDs.freeroam_world)
-            return self.enable_freeroam_mode()
+            self.checks.selecting_skin = False
+            self.set_mode(self.tmp.mode_after_selector)
+            if self.mode == ServerMode.freeroam_world:
+                return self.enable_freeroam_mode()
+
+            if self.mode in ServerMode.deathmatch_worlds:
+                return self.enable_deathmatch_mode(self.mode)
 
     def on_click_map_handle(self, x: float, y: float, z: float) -> None:
-        if self.mode == ServerWorldIDs.freeroam_world and self.vip >= 1:
+        if self.mode == ServerMode.freeroam_world and self.vip.level >= 1:
             return self.set_pos(x, y, z)
 
     def on_start_drift_handle(self) -> None:
-        if self.mode == ServerWorldIDs.freeroam_world:
+        if self.mode == ServerMode.freeroam_world:
             return self.show_drift_counter()
 
     def on_drift_update_handle(self, value: int, combo: int, flag_id: int, distance: float, speed: float) -> None:
-        if self.mode == ServerWorldIDs.freeroam_world:
+        if self.mode == ServerMode.freeroam_world:
             if not self.time.afk >= 1 and self.vehicle.inst.is_car:
                 return self.update_drift_counter(value)
 
     def on_end_drift_handle(self,  value: int, combo: int, reason: int) -> None:
-        if self.mode == ServerWorldIDs.freeroam_world:
+        if self.mode == ServerMode.freeroam_world:
             return self.hide_drift_counter()
+
+
+
 
 
 class Dialogs:
@@ -1280,7 +1402,13 @@ class Dialogs:
     @classmethod
     def show_login_dialog(cls, player: Player) -> int:
         player = Player.from_registry_native(player)
-        return Dialog.create(1, f"{ServerInfo.name_short} | Авторизация", f"{player.get_name()}, добро пожаловать!\nВведите пароль:", "Ок", "", on_response=cls.login_response).show(player)
+        return Dialog.create(
+            1, f"{ServerInfo.name_short} | Авторизация",
+            f"{player.get_name()}, добро пожаловать!\nВведите пароль:",
+            "Ок",
+            "",
+            on_response=cls.login_response
+            ).show(player)
 
     @classmethod
     def login_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
@@ -1367,9 +1495,11 @@ class Dialogs:
 
         player.play_sound(1052, x=0.0, y=0.0, z=0.0)
         player.pin = ""
-        player.is_data.logged = True
+        player.checks.logged = True
         player.registration_ip = player.get_ip()
         player.registration_data = datetime.now(tz=ZoneInfo("Europe/Moscow"))
+        player.reset_money()
+        player.set_money_ex(100000, show_text=False)
         DataBase.create_player(player)
         return cls.show_select_mode_dialog(player)
 
@@ -1393,6 +1523,53 @@ class Dialogs:
             player.spawn()
 
     @classmethod
+    def show_select_deathmatch_dialog(cls, player: Player) -> int:
+        player = Player.from_registry_native(player)
+        return Dialog.create(
+            2,
+            "Выбор карты",
+            "Деревня (Deagle)\nДеревня\nФерма\nЗаброшенная деревня\nЗавод КАСС",
+            "Ок",
+            "",
+            on_response=cls.select_deathmatch_response
+        ).show(player)
+
+    @classmethod
+    def select_deathmatch_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            player.send_error_message("Необходимо выбрать карту!")
+            return cls.show_select_deathmatch_dialog(player)
+
+        if list_item == 0:
+            list_mode = ServerMode.deathmatch_world_oc_deagle
+
+        if list_item == 1:
+            list_mode = ServerMode.deathmatch_world_old_country
+
+        if list_item == 2:
+            list_mode = ServerMode.deathmatch_world_farm
+
+        if list_item == 3:
+            list_mode = ServerMode.deathmatch_world_abandoned_country
+
+        if list_item == 4:
+            list_mode = ServerMode.deathmatch_world_kass
+
+        if player.get_state() == PLAYER_STATE_SPECTATING:
+            player.toggle_spectating(False)
+
+        else:
+            player.spawn()
+
+        if player.skin != 0:
+            player.set_mode(list_mode)
+            return player.enable_deathmatch_mode(player.mode)
+
+        player.tmp.mode_after_selector = list_mode
+        return player.enable_skin_selector()
+
+    @classmethod
     def show_command_gang_choice_dialog(cls, player) -> int:
         player = Player.from_registry_native(player)
         return Dialog.create(2, f"{ServerInfo.name_short} | Банда", "Grove Street Families\nThe Ballas\nLos Santos Vagos\nVarrios Los Aztecas\nLos Santos Rifa", "Ок", "", on_response=cls.command_gang_choice_response).show(player)
@@ -1405,7 +1582,7 @@ class Dialogs:
 
         player.gang_id = list_item
         player.gang = gangs[player.gang_id]
-        player.set_mode(ServerWorldIDs.gangwar_world)
+        player.set_mode(ServerMode.gangwar_world)
         return player.enable_gangwar_mode()
 
     @classmethod
@@ -1420,6 +1597,7 @@ class Dialogs:
             f"Статистика игрока {player_stats.get_name()}",
             (
                 f"Ник:\t\t\t\t{player_stats.get_name()}\n"
+                f"DM-Рейтинг:\t\t\t{{{player_stats.get_dm_color()}}}{player_stats.dm_rating:,} {{{Colors.dialog_hex}}}\n"
                 f"Уровень:\t\t\t{{{Colors.cmd_hex}}}{level}{{{Colors.dialog_hex}}} ({player_stats.score}/{next_lvl_exp})\n"
                 f"Счёт:\t\t\t\t{{{Colors.cmd_hex}}}{player_stats.score}{{{Colors.dialog_hex}}}\n"
                 f"Баланс:\t\t\t{{{Colors.green_hex}}}{player_stats.money}${{{Colors.dialog_hex}}}\n"
@@ -1432,7 +1610,7 @@ class Dialogs:
                 f"Аптечек:\t\t\t{{{Colors.cmd_hex}}}{player_stats.heals}{{{Colors.dialog_hex}}}\n"
                 f"Масок:\t\t\t\t{{{Colors.cmd_hex}}}{player_stats.masks}{{{Colors.dialog_hex}}}\n"
                 f"Есть VIP:\t\t\t{{{Colors.cmd_hex}}}{'Есть' if player_stats.vip.level != -1 else 'Нет'}{{{Colors.dialog_hex}}}\n"
-                f"Выдан мут:\t\t\t{{{Colors.cmd_hex}}}{'Да' if player_stats.is_data.muted else 'Нет'}{{{Colors.dialog_hex}}}"
+                f"Выдан мут:\t\t\t{{{Colors.cmd_hex}}}{'Да' if player_stats.checks.muted else 'Нет'}{{{Colors.dialog_hex}}}"
             ),
             "Закрыть",
             "").show(Player.from_registry_native(show_to))
@@ -1449,7 +1627,7 @@ class Dialogs:
         if not response:
             return cls.show_gangzones_dialog_page_one(player)
 
-        if player.get_virtual_world() == ServerWorldIDs.gangwar_world:
+        if player.get_virtual_world() == ServerMode.gangwar_world:
             return player.send_error_message("Использовать команду можно только вне дома!")
 
         gangzone = DataBase.load_gangzone(player._gz_choice)
@@ -1524,6 +1702,9 @@ class Dialogs:
         gangs[player.tmp.capture_tuple[2]].is_capturing = True
         gangs[player.tmp.capture_tuple[2]].capture_id = player.tmp.capture_tuple[3]
         for player_reg in Player._registry.values():
+            if player_reg.mode != ServerMode.gangwar_world:
+                continue
+
             if player_reg.gang_id == gangs[player_reg.tmp.capture_tuple[1]].gang_id or player_reg.gang_id == gangs[player_reg.tmp.capture_tuple[2]].gang_id:
                 player_reg.send_capture_message(*player.tmp.capture_tuple)
 
@@ -1632,6 +1813,7 @@ class Dialogs:
                     f"{{{Colors.cmd_hex}}}/armour\t{{{Colors.dialog_hex}}}Получение брони\n"
                     f"{{{Colors.cmd_hex}}}/flip\t{{{Colors.dialog_hex}}}Перевернуть транспорт\n"
                     f"{{{Colors.cmd_hex}}}/tuning\t{{{Colors.dialog_hex}}}Тюнинг транспорта\n"
+                    f"{{{Colors.cmd_hex}}}/clist\t{{{Colors.dialog_hex}}}Изменение клиста\n"
                 ),
                 "Закрыть",
                 "").show(player)
@@ -1656,11 +1838,10 @@ class Dialogs:
         return Dialog.create(
             2,
             "Выбрать режим",
-            "GangWar\nFreeroam",
-            # "GangWar\nDeathmatch (Indev)\nFreeroam\nMinigames (Indev)",
+            "GangWar\nFreeroam\nDeathmatch",
             "Ок",
             "",
-            on_response=cls.select_mode_response
+            on_response=cls.select_mode_response,
         ).show(player)
 
     @classmethod
@@ -1671,18 +1852,15 @@ class Dialogs:
             return cls.show_select_mode_dialog(player)
 
         if list_item == 0:
-            if player.check_player_mode([ServerWorldIDs.gangwar_world, ServerWorldIDs.gangwar_world]):
+            if player.mode == ServerMode.gangwar_world:
                 return player.send_error_message("Вы уже выбрали этот режим!")
 
-            player.set_mode(ServerWorldIDs.gangwar_world)
+            player.set_mode(ServerMode.gangwar_world)
             player.send_notification_message(f"Вы выбрали режим {{{Colors.cmd_hex}}}GangWar{{{Colors.white_hex}}}!")
             return cls.show_gang_choice_dialog(player)
 
-        # if list_item == 1:
-        #     ...
-
         if list_item == 1:
-            if player.check_player_mode([ServerWorldIDs.freeroam_world]):
+            if player.mode == ServerMode.freeroam_world:
                 return player.send_error_message("Вы уже выбрали этот режим!")
 
             player.send_notification_message(f"Вы выбрали режим {{{Colors.cmd_hex}}}Freeroam{{{Colors.white_hex}}}!")
@@ -1690,34 +1868,16 @@ class Dialogs:
                 player.toggle_spectating(False)
             else:
                 player.spawn()
-            return player.enable_freeroam_selector()
 
-    # @classmethod
-    # def show_password_ask_dialog(cls, player) -> None:
-    #     player = Player.from_registry_native(player)
-    #     return Dialog.create(
-    #         3,
-    #         "Введите пароль",
-    #         "Перед продолжением необходимо указать пароль:",
-    #         "Ок",
-    #         "Назад",
-    #         on_response=cls.password_ask_response
-    #     ).show(player)
+            player.tmp.mode_after_selector = ServerMode.freeroam_world
+            return player.enable_skin_selector()
 
-    # @classmethod
-    # def password_ask_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
-    #     player = Player.from_registry_native(player)
-    #     if not response:
-    #         return cls.show_mn_dialog(player)
+        if list_item == 2:
+            if player.mode in ServerMode.deathmatch_worlds:
+                return cls.show_select_deathmatch_dialog(player)
 
-    #     if len(input_text) < 6 or len(input_text) > 32:
-    #         return player.send_error_message("Длина пароля должна быть от 6 и до 32 символов!")
-
-    #     player_db = DataBase.get_player(player)
-    #     if input_text != player_db.password:
-    #         return player.send_error_message("Вы указали неверный пароль!")
-
-    #     return cls.show_privacy_settings_dialog(player)
+            player.send_notification_message(f"Вы выбрали режим {{{Colors.cmd_hex}}}Deathmatch{{{Colors.white_hex}}}!")
+            return cls.show_select_deathmatch_dialog(player)
 
     @classmethod
     def show_account_settings_dialog(cls, player) -> None:
@@ -1728,7 +1888,7 @@ class Dialogs:
             (
                 f"1. Изменить e-mail\n"
                 f"2. Изменить PIN код\n"
-                f"3. {'Отключить' if player.settings.disabled_ping_td else 'Включить'} показание пинга\n"
+                f"3. {'Включить' if player.settings.disabled_ping_td else 'Отключить'} показание пинга\n"
                 f"4. {'Отключить' if player.settings.disabled_global_chat_gw else 'Включить'} глобальный чат в режиме GangWar по умолчанию\n"
 
             ),
@@ -1758,7 +1918,7 @@ class Dialogs:
                 player.settings.disabled_ping_td = True
                 player.hide_ping_textdraw()
 
-            return player.send_notification_message(f"Вы {{{Colors.cmd_hex}}}{'включили' if player.settings.disabled_ping_td else 'отключили'}{{{Colors.white_hex}}} показание пинга.")
+            return player.send_notification_message(f"Вы {{{Colors.cmd_hex}}}{'отключили' if player.settings.disabled_ping_td else 'включили'}{{{Colors.white_hex}}} показание пинга.")
 
         if list_item == 3:
             if player.settings.disabled_global_chat_gw:
@@ -2058,7 +2218,7 @@ class Dialogs:
         if player.money - veh_data[2] < 0:
             return player.send_error_message(f"Вам не хватает {{{Colors.cmd_hex}}}{veh_data[2] - player.money}${{{Colors.red_hex}}}!")
 
-        player.remove_unused_vehicle()
+        player.remove_unused_vehicle(ServerMode.freeroam_world)
         player.set_money_ex(veh_data[2], increase=False)
         player_veh = Vehicle.create(
             int(input_text),
@@ -2510,7 +2670,7 @@ class Dialogs:
         if list_item == 3:
             model_id = 432
 
-        player.remove_unused_vehicle()
+        player.remove_unused_vehicle(ServerMode.freeroam_world)
         player_veh = Vehicle.create(
             model_id,
             *player.get_pos(),
@@ -2523,3 +2683,27 @@ class Dialogs:
         player_veh.set_info(owner=player.get_name())
         player.update_vehicle_inst(player_veh)
         player.put_in_vehicle(player.vehicle.inst.id, 0)
+
+    @classmethod
+    def show_clist_dialog(cls, player: Player) -> None:
+        player = Player.from_registry_native(player)
+        color_str = ""
+        for key, value in Colors.clist_hex.items():
+            color_str += f"{{{value}}}{player.name}\n"
+
+        return Dialog.create(
+            2, "Изменение цвета",
+            color_str,
+            "Ок",
+            "Закрыть",
+            on_response=cls.clist_response
+        ).show(player)
+
+    @classmethod
+    def clist_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            return
+
+        player.set_color_ex(Colors.clist_rgba[list_item])
+        return player.send_notification_message(f"{{{Colors.clist_hex[list_item]}}}Цвет изменён!")
