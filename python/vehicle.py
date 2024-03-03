@@ -1,9 +1,9 @@
 from pysamp.vehicle import Vehicle as BaseVehicle
 from pysamp.timer import set_timer
-from .utils.data import ServerMode
+from .libs.utils.data import ServerMode
 from functools import wraps
 from dataclasses import dataclass
-from .utils.consts import NO_VEHICLE_OWNER, ID_NONE, TIMER_ID_NONE
+from .libs.utils.consts import NO_VEHICLE_OWNER, ID_NONE, TIMER_ID_NONE
 from typing import TypeVar
 
 

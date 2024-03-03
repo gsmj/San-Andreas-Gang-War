@@ -38,7 +38,7 @@
     "language": "Loading..",
     "logging": {
         "enable": true,
-        "log_chat": true,
+        "log_chat": false,
         "log_cookies": true,
         "log_deaths": true,
         "log_queries": false,
@@ -64,7 +64,7 @@
         "minimum_connection_time": 0,
         "mtu": 576,
         "multiplier": 10,
-        "on_foot_sync_rate": 30,
+        "on_foot_sync_rate": 25,
         "player_marker_sync_rate": 2500,
         "player_timeout": 10000,
         "port": 7777,

@@ -12,20 +12,14 @@ MESSAGE_RESTORE_ACCOUNT = """
 Текст
 Текст
 """
-
-
 email.set_content(MESSAGE_RESTORE_ACCOUNT)
 
-class Server:
-    @classmethod
-    def send_email(cls, mail: str) -> None:
-        try:
-            with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ssl.create_default_context()) as server:
-                server.login(ROOT, PASSWORD)
-                server.sendmail(ROOT, mail, email.as_string())
-        except:
-            return print("Не удалость отправить сообщение!")
+def send_email(cls, mail: str) -> None:
+    try:
+        with smtplib.SMTP_SSL("smtp.gmail.com", 465, context=ssl.create_default_context()) as server:
+            server.login(ROOT, PASSWORD)
+            server.sendmail(ROOT, mail, email.as_string())
+    except:
+        return print("Не удалость отправить сообщение!")
 
-        return print("Сообщение отправлено успешно")
-
-Server.send_email("mestodan230@gmail.com")
+    return print("Сообщение отправлено успешно")

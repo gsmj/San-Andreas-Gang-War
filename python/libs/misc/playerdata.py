@@ -1,8 +1,9 @@
 from dataclasses import dataclass, field
-from .utils.consts import TIMER_ID_NONE, SLOT_ID_NONE, ID_NONE
-from .vehicle import Vehicle
+from ..utils.consts import TIMER_ID_NONE, SLOT_ID_NONE, ID_NONE
+from ...vehicle import Vehicle
+from ..house.house import House
 
-@dataclass
+@dataclass(repr=False)
 class PlayerDrift:
     money: int = 0
     score: int = 0
@@ -10,7 +11,7 @@ class PlayerDrift:
     timer_id: int = TIMER_ID_NONE
 
 
-@dataclass
+@dataclass(repr=False)
 class PlayerFreeroamGunSlots:
     fist: int = SLOT_ID_NONE # Fist. Not used
     melee: int = SLOT_ID_NONE # Melee
@@ -21,7 +22,7 @@ class PlayerFreeroamGunSlots:
     long_rifle: int = SLOT_ID_NONE # Long rifle
 
 
-@dataclass
+@dataclass(repr=False)
 class PlayerVIP:
     level: int = -1
     is_random_clist_enabled: bool = False
@@ -30,7 +31,7 @@ class PlayerVIP:
     random_clist_iterator: int = 0
 
 
-@dataclass
+@dataclass(repr=False)
 class PlayerAdmin:
     level: int = 0
     world_id_before_spec: int = -1
@@ -43,32 +44,35 @@ class PlayerAdmin:
         return True
 
 
-@dataclass
+@dataclass(repr=False)
 class PlayerChecks:
     muted: bool = False
     jailed: bool = False
     logged: bool = False
     banned: bool = False
-    selecting_skin: bool = False
+    selected_skin: bool = False
     wearing_mask: bool = False
     saw_bottom_textdraw: bool = False
+    in_house: bool = False
 
 
-@dataclass
+@dataclass(repr=False)
 class PlayerTime:
     cooldown: float = 0.0
+    pickup_cooldown: float = 0.0
     jail: int = 0
     mute: int = 0
     afk: int = 0
 
 
-@dataclass
+@dataclass(repr=False)
 class PlayerSettings:
     disabled_ping_td: bool = True # Чтобы при коннекте не показывать
     disabled_global_chat_gw: bool = False
+    spawn_in_house: bool = False
 
 
-@dataclass
+@dataclass(repr=False)
 class PlayerTimers:
     jail_id: int = TIMER_ID_NONE
     mute_id: int = TIMER_ID_NONE
@@ -76,14 +80,6 @@ class PlayerTimers:
     deathmatch_in_area: int = TIMER_ID_NONE
 
 
-@dataclass
-class PlayerTemp:
-    capture_tuple = None
-    login_attempts = 1
-    freeroam_selector: int = 0
-    mode_after_selector: int = None
-
-
-@dataclass
+@dataclass(repr=False)
 class PlayerVehicle:
-    inst: "Vehicle" = None
+    inst: Vehicle = None

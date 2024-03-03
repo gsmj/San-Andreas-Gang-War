@@ -27,7 +27,7 @@ class MathTest:
     def send_winner_message(cls, player) -> None:
         send_client_message_to_all(
             Colors.dark_green,
-            f"{{{Colors.cmd_hex}}}{player.name}({player.id}){{{Colors.dark_green_hex}}} написал правильный ответ: {{{Colors.cmd_hex}}}{cls.correct_answer}{{{Colors.dark_green_hex}}}!"
+            f"{{{Colors.cmd_hex}}}{player.name}[{player.id}]{{{Colors.dark_green_hex}}} написал правильный ответ: {{{Colors.cmd_hex}}}{cls.correct_answer}{{{Colors.dark_green_hex}}}!"
         )
         player.set_money_ex(100000)
         cls.correct_answer = ID_NONE
