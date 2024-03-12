@@ -1976,13 +1976,7 @@ def pdata(player: Player, player_id: int):
     for attr, value in vars(player_).items():
         content += f"{attr}: {value}\n"
 
-    return Dialog.create(
-        0,
-        "Отладочная информация об игроке",
-        content,
-        "Закрыть",
-        ""
-    ).show(player)
+    player.send_notification_message(f"{attr} = {value}")
 
 @cmd_ex(
     cmd(use_function_name=False, aliases="class"),

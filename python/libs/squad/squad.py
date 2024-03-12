@@ -15,6 +15,15 @@ squad_permissions: dict[str, str] = {
     "Повышать участников": "giverank",
     "Понижать участников": "takerank",
 }
+squad_permissions_converter: dict[str, str] = {
+    "all": "Все разрешения",
+    "invite": "Приглашать участников",
+    "uninvite": "Выгонять участников",
+    "manage": "Управлять фракцией",
+    "startwar": "Начинать войну",
+    "giverank": "Повышать участников",
+    "takerank": "Понижать участников",
+}
 
 squad_gangzone_pool: dict[int, "SquadGangZone"] = {}
 """

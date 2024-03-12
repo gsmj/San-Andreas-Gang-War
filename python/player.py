@@ -6,7 +6,7 @@ from typing import Literal
 from zoneinfo import ZoneInfo
 
 from samp import (INVALID_PLAYER_ID, PLAYER_STATE_DRIVER,  # type: ignore
-                  PLAYER_STATE_ONFOOT, PLAYER_STATE_SPECTATING)
+                  PLAYER_STATE_ONFOOT)
 
 from pydpc.driftcounter.drift import Drift
 from pysamp import (call_remote_function, create_player_3d_text_label,
@@ -30,7 +30,7 @@ from .libs.house.house import (House, houses_by_owner, houses_by_pickup,
 from .libs.misc.playerdata import *
 from .libs.modes.modes import DeathMatch, Freeroam, GangWar, Jail
 from .libs.squad.squad import (Squad, squad_gangzone_pool, squad_pool,
-                               squad_pool_id)
+                               squad_pool_id, squad_permissions_converter)
 from .libs.static import playertextdraws, textdraws
 from .libs.utils.consts import *
 from .libs.utils.data import *
@@ -2917,7 +2917,7 @@ class Dialogs:
             (
                 "1. Создать ранг\n"
                 "2. Удалить ранг\n"
-                "3. Список рангов\n"
+                "3. Список рангов"
             ),
             "Ок",
             "Назад",
@@ -2934,10 +2934,10 @@ class Dialogs:
             return cls.show_squad_create_rank_dialog(player)
 
         if list_item == 1:
-            ...
+            return cls.show_squad_rank_list_dialog(player, "delete")
 
         if list_item == 2:
-            ...
+            return cls.show_squad_rank_list_dialog(player, "show")
 
     @classmethod
     def show_squad_create_rank_dialog(cls, player: Player) -> None:
@@ -3014,6 +3014,7 @@ class Dialogs:
                 f'Вы создали ранг {{{player.squad.color_hex}}}{player.cache["CREATE_SQUAD_RANK"][0]["NAME"]}{{{Colors.white_hex}}}.'
             )
             del player.cache["CREATE_SQUAD_RANK"]
+            return
 
         if input_text in player.cache["CREATE_SQUAD_RANK"][1]["PERMISSIONS"]:
             del player.cache["CREATE_SQUAD_RANK"][1]["PERMISSIONS"][input_text]
@@ -3026,6 +3027,7 @@ class Dialogs:
     @classmethod
     def show_squad_rank_list_dialog(cls, player: Player, action: Literal["delete", "show"]) -> None:
         player = Player.from_registry_native(player)
+        player.cache["SQUAD_RANK_LIST_DIALOG"] = action
         ranks_str = ""
         for rank in player.squad.ranks.keys():
             ranks_str += f"{rank}\n"
@@ -3033,10 +3035,38 @@ class Dialogs:
         return Dialog.create(
             2,
             "Список рангов",
-            f"{ranks_str}"
+            ranks_str,
+            "Выбрать",
+            "Назад",
+            on_response=cls.squad_rank_list_response
         ).show(player)
 
+    @classmethod
+    def squad_rank_list_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            del player.cache["SQUAD_RANK_LIST_DIALOG"]
+            return cls.show_squad_info_dialog(player)
 
+        if player.cache["SQUAD_RANK_LIST_DIALOG"] == "delete":
+            ...
+
+        if player.cache["SQUAD_RANK_LIST_DIALOG"] == "show":
+            del player.cache["SQUAD_RANK_LIST_DIALOG"]
+            perms = ""
+            for rank, permission in player.squad.ranks.items():
+                if input_text != rank:
+                    continue
+
+                perms += f"{squad_permissions_converter[permission]}\n"
+
+            return Dialog.create(
+                2,
+                f"Ранг {rank}",
+                perms,
+                "Закрыть",
+                ""
+            )
 
 
 
