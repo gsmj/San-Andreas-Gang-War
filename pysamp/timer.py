@@ -1,4 +1,1 @@
-from pysamp import (
-    set_timer,
-    kill_timer
-)
+from pysamp import kill_timer, set_timer

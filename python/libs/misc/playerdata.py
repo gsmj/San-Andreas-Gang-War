@@ -1,7 +1,11 @@
 from dataclasses import dataclass, field
-from ..utils.consts import TIMER_ID_NONE, SLOT_ID_NONE, ID_NONE
+
+from pysamp.timer import kill_timer, set_timer
+
 from ...vehicle import Vehicle
 from ..house.house import House
+from ..utils.consts import SLOT_ID_NONE, TIMER_ID_NONE
+
 
 @dataclass(repr=False)
 class PlayerDrift:
@@ -30,6 +34,9 @@ class PlayerVIP:
     gangwar_template = ("0, 0, 0")
     random_clist_iterator: int = 0
 
+    def disable_clist_timer_for_player(self) -> None:
+        if self.random_clist_timer_id != TIMER_ID_NONE:
+            kill_timer(self.random_clist_timer_id)
 
 @dataclass(repr=False)
 class PlayerAdmin:

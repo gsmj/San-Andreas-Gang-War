@@ -1,43 +1,36 @@
-from pysamp import (
-    send_rcon_command,
-    set_game_mode_text,
-    enable_stunt_bonus_for_all,
-    manual_vehicle_engine_and_lights,
-    disable_interior_enter_exits,
-    show_player_markers,
-    set_world_time,
-    send_client_message_to_all,
-    show_name_tags,
-    add_player_class,
-    use_player_ped_anims
-)
+import random
 from datetime import datetime
 from zoneinfo import ZoneInfo
+
+from pydpc.driftcounter import *
+from pydpc.driftcounter.callbacks import register as register_drift_callbacks
+from pysamp import (add_player_class, disable_interior_enter_exits,
+                    enable_stunt_bonus_for_all,
+                    manual_vehicle_engine_and_lights,
+                    send_client_message_to_all, send_rcon_command,
+                    set_game_mode_text, set_world_time, show_name_tags,
+                    show_player_markers, use_player_ped_anims)
 from pysamp.timer import set_timer
 from pystreamer import register_callbacks
-from pystreamer.dynamiccp import DynamicCheckpoint
-from pystreamer.dynamicpickup import DynamicPickup
-from pydpc.driftcounter.callbacks import register as register_drift_callbacks
-from pydpc.driftcounter.drift import Drift
-from pydpc.driftcounter import *
-from .libs.modes.modes import GangWar
-from .libs.gang.gang import GangZoneData, gangzone_pool
-from .libs.squad.squad import Squad, SquadGangZone, squad_gangzone_pool
-from .player import Player
-from .vehicle import Vehicle
-from .libs.utils.data import *
-from .libs.database.database import DataBase
+
+from .core import Core
+from .libs import __version__
 from .libs.commands.commands import *
-from .libs.static.textdraws import create_textdraws
+from .libs.commands.debug import *
+from .libs.database.database import DataBase
+from .libs.dynamic.objects import create_objects
+from .libs.fun.math import MathTest
+from .libs.gang.gang import GangZoneData, gangzone_pool
+from .libs.house.house import House, houses
+from .libs.modes.modes import GangWar
+from .libs.squad.squad import Squad, SquadGangZone, squad_gangzone_pool, squad_pool
 from .libs.static.gangzones import create_gangzones
 from .libs.static.labels import create_labels
-from .libs.dynamic.objects import create_objects
-from .libs.utils.consts import NO_HOUSE_OWNER
-from .libs.house.house import House, houses
-from .libs import __version__
-from .core import Core
-from .libs.fun.math import MathTest
-import random
+from .libs.static.textdraws import create_textdraws
+from .libs.utils.consts import NO_HOUSE_OWNER, NO_VEHICLE_OWNER, ID_NONE
+from .libs.utils.data import *
+from .player import Player
+from .vehicle import Vehicle
 encode()
 
 
@@ -95,18 +88,7 @@ def on_ready():
                 squad_gz.capture_cooldown,
             )
 
-    squads = DataBase.load_squads()
-    if squads:
-        for squad in squads:
-            Squad(
-                squad.name,
-                squad.tag,
-                squad.leader,
-                squad.classification,
-                squad.color,
-                squad.color_hex,
-            )
-
+    Squad.create_all()
     vehicles = DataBase.load_vehicles_order_by()
     if vehicles:
         for vehicle in vehicles:
@@ -142,6 +124,7 @@ def on_ready():
                 house.pos_z,
                 house.is_locked
             )
+
     analytics = DataBase.get_any_analytics()
     if not analytics:
         DataBase.create_analytics()
@@ -155,6 +138,7 @@ def on_ready():
 
     print(f"Loaded: {len(gangzone_pool)} gangzones")
     print(f"Loaded: {len(squad_gangzone_pool)} squad gangzones")
+    print(f"Loaded: {len(squad_pool)} squads")
     print(f"Loaded: {len(Vehicle._registry.items())} vehicles")
     print(f"Loaded: {len(houses)} houses")
     print("--------------------------------------------------")
@@ -170,11 +154,11 @@ def every_second():
         if gangzone.capture_cooldown != 0:
             gangzone.capture_cooldown -= 1
 
-        if gangzone.capture_cooldown == 0:
-            DataBase.save_gangzone(
-                gangzone.id,
-                capture_cooldown=0
-            )
+            if gangzone.capture_cooldown == 0:
+                DataBase.save_gangzone(
+                    gangzone.id,
+                    capture_cooldown=0
+                )
 
         if gangzone.is_capture:
             if gangzone.capture_time != 0:
@@ -188,20 +172,19 @@ def every_second():
         if squad_gangzone.capture_cooldown != 0:
             squad_gangzone.capture_cooldown -= 1
 
-        if squad_gangzone.capture_cooldown == 0:
-            DataBase.save_squad_gangzone(
-                squad_gangzone.id,
-                capture_cooldown=0
-            )
+            if squad_gangzone.capture_cooldown == 0:
+                DataBase.save_squad_gangzone(
+                    squad_gangzone.id,
+                    capture_cooldown=0
+                )
 
         if squad_gangzone.is_capture:
             if squad_gangzone.capture_time != 0:
                 squad_gangzone.capture_time -= 1
-                # GangWar.update_capture_textdraw(gangzone)
+                GangWar.update_capture_textdraw(gangzone)
 
             else:
-                ...
-                # GangWar.end_capture(gangzone, Player._registry)
+                GangWar.end_capture(gangzone, Player._registry)
 
     if ServerInfo.current_time.hour != datetime.now(tz=ZoneInfo("Europe/Moscow")).hour:
         ServerInfo.current_time = datetime.now(tz=ZoneInfo("Europe/Moscow"))
@@ -230,66 +213,10 @@ def every_second():
         MathTest.send_math_test()
         ServerInfo.send_math = 1800
 
-@Player.on_text
-@Player.using_registry
-def on_player_text(player: Player, text: str) -> None:
-    player.on_text_handle(text)
-    return False
-
-@DynamicPickup.on_player_pick_up
-@Player.using_registry
-def on_player_pick_up_pickup(player: Player, pickup: DynamicPickup) -> None:
-    player.on_pick_up_pickup_handle(pickup)
-
-@DynamicCheckpoint.on_player_enter
-@Player.using_registry
-def on_player_enter_checkpoint(player: Player, checkpoint: DynamicCheckpoint) -> None:
-    player.on_enter_checkpoint_handle(checkpoint)
-
-@Player.on_update
-@Player.using_registry
-def on_player_update(player: Player) -> None:
-    player.on_update_handle()
-
-@Player.on_give_damage
-@Player.using_registry
-def on_player_give_damage(player: Player, issuer: Player, amount: float, weapon_id: int, body_part) -> None:
-    issuer = Player.from_registry_native(issuer)
-    player.on_damage_handler(issuer, amount, weapon_id, body_part)
-
-@Player.on_key_state_change
-@Player.using_registry
-def on_player_key_state_change(player: Player, new_keys: int, old_keys: int) -> None:
-    player.on_key_state_change_handle(new_keys, old_keys)
-
-@Player.on_state_change
-@Player.using_registry
-def on_player_state_change(player: Player, new_state: int, old_state: int) -> None:
-    player.on_state_change_handle(new_state, old_state)
-
-@Drift.on_start
-@Player.using_registry
-def on_player_start_drift(player: Player) -> None:
-    player.on_start_drift_handle()
-
-@Drift.on_update
-@Player.using_registry
-def on_player_drift_update(player: Player, value: int, combo: int, flag_id: int, distance: float, speed: float) -> None:
-    player.on_drift_update_handle(value, combo, flag_id, distance, speed)
-
-@Drift.on_end
-@Player.using_registry
-def on_player_end_drift(player: Player, value: int, combo: int, reason: int) -> None:
-    player.on_end_drift_handle(value, combo, reason)
-
 @Vehicle.on_death
 @Vehicle.using_registry
 def on_vehicle_death(vehicle: Vehicle, killer: Player) -> None:
     killer = Player.from_registry_native(killer)
-    vehicle.on_death_handle(killer)
-
-@Vehicle.on_damage_status_update
-@Vehicle.using_registry
-def on_vehicle_damage_status_update(vehicle: Vehicle, player: Player) -> None:
-    player = Player.from_registry_native(player)
-    vehicle.on_damage_status_handle(player)
+    if vehicle.owner != NO_VEHICLE_OWNER:
+        killer.vehicle.inst = None
+        return Vehicle.delete_registry(vehicle)

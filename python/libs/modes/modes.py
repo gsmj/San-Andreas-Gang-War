@@ -1,25 +1,20 @@
+import random
+from dataclasses import dataclass
+from random import randint
+
+from pysamp import (gang_zone_flash_for_player, gang_zone_hide_for_player,
+                    gang_zone_show_for_player, gang_zone_stop_flash_for_player)
 from pysamp.player import Player
-from pysamp.timer import set_timer, kill_timer
-from pysamp import (
-    gang_zone_flash_for_player,
-    gang_zone_hide_for_player,
-    gang_zone_stop_flash_for_player,
-    gang_zone_show_for_player
-)
-from pystreamer import (
-    create_dynamic_map_icon,
-    destroy_dynamic_map_icon
-)
+from pysamp.timer import kill_timer, set_timer
+from pystreamer import create_dynamic_map_icon, destroy_dynamic_map_icon
+
 from ..database.database import DataBase
 from ..gang.gang import GangZoneData, gangs, gangzone_pool
-from ..static.textdraws import capture_td
-from dataclasses import dataclass
-from ..utils.data import ServerMode, Colors, convert_seconds, get_center
-from ..utils.consts import TIMER_ID_NONE
-from ..static import gangzones
 from ..house.house import interiors
-import random
-from random import randint
+from ..static import gangzones
+from ..static.textdraws import capture_td
+from ..utils.consts import TIMER_ID_NONE
+from ..utils.data import Colors, ServerMode, convert_seconds, get_center
 
 
 @dataclass(frozen=True)
@@ -185,6 +180,52 @@ class DeathMatchSpawns:
         ),
     }
 
+
+class Jail:
+    @classmethod
+    def enable_mode_for_player(cls, player: Player):
+        player.remove_unused_vehicle(ServerMode.freeroam_world)
+        player.set_skin(167)
+        player.set_team(254)
+        player.set_color_ex(Colors.jail)
+        GangWar.disable_gangzones_for_player(player)
+        GangWar.hide_capture_textdraws(player)
+        DeathMatch.hide_gangzones_for_player(player)
+        player.set_pos(5509.365234, 1245.812866, 8.000000)
+        cls.set_spawn_info_for_player(player)
+        player.reset_weapons()
+        player.send_notification_message(f"Вы выйдите из деморгана через {{{Colors.cmd_hex}}}{player.time.jail}{{{Colors.white_hex}}} минут.")
+        if player.timers.jail_id == TIMER_ID_NONE:
+            player.timers.jail_id = set_timer(player.timer_for_player, int(player.time.jail * 60000), False)
+
+        DeathMatch.disable_timer_for_player(player)
+
+    @staticmethod
+    def set_spawn_info_for_player(player: Player):
+        player.set_spawn_info(
+            254, # 254 Команда для игроков в ДМГ, чтобы не было урона
+            167,
+            5509.365234,
+            1245.812866,
+            8.000000,
+            0.0,
+            0, 0, 0, 0, 0, 0)
+
+    @staticmethod
+    def timer_for_player(player: Player) -> None:
+        player.send_notification_message("Вас выпустили из деморгана.")
+        player.checks.jailed = False
+        player.time.jail = 0
+        player.timers.jail_id = TIMER_ID_NONE
+        player.force_class_selection()
+        player.toggle_spectating(True)
+        player.toggle_spectating(False)
+
+    @classmethod
+    def disable_timer_for_player(cls, player: Player) -> None:
+        if player.timers.jail_id != TIMER_ID_NONE:
+            kill_timer(player.timers.jail_id)
+            player.timers.jail_id = TIMER_ID_NONE
 
 class DeathMatch:
     @staticmethod

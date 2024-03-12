@@ -1,10 +1,13 @@
-from pysamp.vehicle import Vehicle as BaseVehicle
-from pysamp.timer import set_timer
-from .libs.utils.data import ServerMode
-from functools import wraps
+import math
 from dataclasses import dataclass
-from .libs.utils.consts import NO_VEHICLE_OWNER, ID_NONE, TIMER_ID_NONE
-from typing import TypeVar
+from functools import wraps
+
+from pysamp.player import Player
+from pysamp.timer import set_timer
+from pysamp.vehicle import Vehicle as BaseVehicle
+
+from .libs.utils.consts import ID_NONE, NO_VEHICLE_OWNER, TIMER_ID_NONE
+from .libs.utils.data import ServerMode
 
 
 @dataclass
@@ -554,13 +557,17 @@ class Vehicle(BaseVehicle):
         self.repair()
         self.repair_timer = ID_NONE
 
-    # Handlers
+    def get_speed(self) -> int:
+        x, y, z = self.get_velocity()
+        x_res = abs(x)**2.0
+        y_res = abs(y)**2.0
+        z_res = abs(z)**2.0
 
-    def on_death_handle(self, killer) -> None:
-        if self.owner != NO_VEHICLE_OWNER:
-            killer.vehicle.inst = None
-            return self.delete_registry(self)
+        res = math.sqrt(x_res + y_res + z_res) * 100.3
+        return int(res)
 
-    def on_damage_status_handle(self, player) -> None:
-        if self.repair_timer == ID_NONE:
-            return set_timer(self.repair_ex, 1500, False)
+@Vehicle.on_damage_status_update
+@Vehicle.using_registry
+def on_vehicle_damage_status(vehicle: Vehicle, player: Player) -> None:
+    if vehicle.repair_timer == ID_NONE:
+        return set_timer(vehicle.repair_ex, 1500, False)

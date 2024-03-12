@@ -1,26 +1,14 @@
-from sqlalchemy import (
-    create_engine,
-    String,
-    Integer,
-    Column,
-    DateTime,
-    Boolean,
-    select,
-    Identity,
-    Float,
-    and_,
-    delete,
-)
-from sqlalchemy.orm import (
-    declarative_base,
-    sessionmaker
-)
+import platform
 from dataclasses import dataclass
-from pysamp.gangzone import Gangzone
 from datetime import datetime
 from zoneinfo import ZoneInfo
-import platform
 
+from sqlalchemy import (Boolean, Column, DateTime, Float, Identity, Integer,
+                        String, and_, create_engine, delete, select)
+from sqlalchemy.orm import declarative_base, sessionmaker
+
+from pysamp.gangzone import Gangzone
+from typing import Sequence
 
 default_gang_zones = [
     (1642.710571,-2174.567871,1770.710571,-2073.567871),
@@ -328,26 +316,33 @@ class Squad(Base):
     uid = Column(Integer, Identity(), primary_key=True)
     name = Column(String(32))
     tag = Column(String(6))
-    leader = Column(String(32))
     classification = Column(String(32))
     color = Column(Integer())
     color_hex = Column(String(16))
 
 
-class SquadMembers(Base):
-    __tablename__ = "SquadMembers"
+class SquadMember(Base):
+    __tablename__ = "SquadMember"
     uid = Column(Integer, Identity(), primary_key=True)
-    squad = Column(String(32))
+    squad_id = Column(Integer)
     member = Column(String(32))
     rank = Column(String(32))
 
 
-class SquadRanks(Base):
-    __tablename__ = "SquadRanks"
+class SquadRank(Base):
+    __tablename__ = "SquadRank"
     uid = Column(Integer, Identity(), primary_key=True)
-    squad = Column(String(32))
+    squad_id = Column(Integer)
     rank = Column(String(32), default="Лидер")
-    permissions = Column(String(32), default="all")
+    permissions = Column(String(32))
+
+
+class SquadRankPermissions(Base):
+    __tablename__ = "SquadRankPermissions"
+    uid = Column(Integer, Identity(), primary_key=True)
+    squad_id = Column(Integer)
+    rank_id = Column(Integer)
+    permissions = Column(String(16))
 
 
 class SquadGangZones(Base):
@@ -371,7 +366,7 @@ class DataBase():
             engine = create_engine("sqlite:///python/libs/database/sqlite3.db")
 
         Base.metadata.create_all(engine)
-        cls.Session = sessionmaker(bind=engine)
+        cls.Session = sessionmaker(bind=engine, expire_on_commit=False)
         print(f"Loading: DataBase ({platform.system()})")
 
     @classmethod
@@ -690,13 +685,31 @@ class DataBase():
         print(f"Created: SquadGangZones (server)")
 
     @classmethod
-    def create_squad(cls, name: str, tag: str, leader: str, classification: str, color: int, color_hex: str) ->Squad:
+    def create_squad(cls, name: str, tag: str, leader: str, classification: str, color: int, color_hex: str) -> Squad:
         with cls.Session() as session:
-            session.add(Squad(name=name, tag=tag, leader=leader, classification=classification, color=color, color_hex=color_hex))
-            session.add(SquadRanks(squad=name))
+            session.add(Squad(name=name, tag=tag, classification=classification, color=color, color_hex=color_hex))
+            squad_ = session.execute(select(Squad).where(Squad.name == name)).scalar()
+
+            session.add(SquadMember(squad_id=squad_.uid, member=leader, rank="Лидер"))
+            session.add(SquadRank(squad_id=squad_.uid))
+
+            rank_ = session.execute(select(SquadRank).where(SquadRank.squad_id == squad_.uid)).scalar()
+            session.add(SquadRankPermissions(squad_id=squad_.uid, rank_id=rank_.uid, permissions="all"))
+
             session.commit()
-            sq = session.execute(select(Squad).where(Squad.name == name))
-            return sq.scalar()
+            return squad_
+
+    @classmethod
+    def load_squad_by_name(cls, squad_name: str) -> Squad:
+        with cls.Session() as session:
+            result = session.execute(select(Squad).where(Squad.name == squad_name))
+            return result.scalar()
+
+    @classmethod
+    def load_squad_by_tag(cls, squad_tag: str) -> Squad:
+        with cls.Session() as session:
+            result = session.execute(select(Squad).where(Squad.tag == squad_tag))
+            return result.scalar()
 
     @classmethod
     def load_squad(cls, squad_uid: int) -> Squad:
@@ -711,11 +724,11 @@ class DataBase():
             return result.scalars().all()
 
     @classmethod
-    def delete_squad(cls, squad_name: int) -> Squad:
+    def delete_squad(cls, squad_id: int) -> Squad:
         with cls.Session() as session:
-            session.execute(delete(Squad).where(Squad.name == squad_name))
-            session.execute(delete(SquadMembers).where(SquadMembers.squad == squad_name))
-            session.execute(delete(SquadRanks).where(SquadRanks.squad == squad_name))
+            session.execute(delete(Squad).where(Squad.uid == squad_id))
+            session.execute(delete(SquadMember).where(SquadMember.squad_id == squad_id))
+            session.execute(delete(SquadRank).where(SquadRank.squad_id == squad_id))
 
     @classmethod
     def save_squad(cls, squad_uid: int, **kwargs: dict) -> None:
@@ -729,27 +742,27 @@ class DataBase():
             session.commit()
 
     @classmethod
-    def create_squad_member(cls, name: str, member: str, rank: str) -> None:
+    def create_squad_member(cls, squad_id: int, member: str, rank: str) -> None:
         with cls.Session() as session:
-            session.add(SquadMembers(squad=name, member=member, rank=rank))
+            session.add(SquadMember(squad_id=squad_id, member=member, rank=rank))
             session.commit()
 
     @classmethod
-    def load_squad_member(cls, name: str) -> SquadMembers:
+    def load_squad_member(cls, player: Player) -> SquadMember:
         with cls.Session() as session:
-            result = session.execute(select(SquadMembers).where(Squad.name == name))
+            result = session.execute(select(SquadMember).where(SquadMember.member == player.name))
             return result.scalar()
 
     @classmethod
-    def load_squad_members(cls, squad: str) -> SquadMembers:
+    def load_squad_members(cls, squad_id: int) -> SquadMember:
         with cls.Session() as session:
-            result = session.execute(select(SquadMembers).where(SquadMembers.squad == squad))
+            result = session.execute(select(SquadMember).where(SquadMember.squad_id == squad_id))
             return result.scalars().all()
 
     @classmethod
     def save_squad_member(cls, member: str, **kwargs: dict) -> None:
         with cls.Session() as session:
-            result = session.execute(select(SquadMembers).where(SquadMembers.member == member))
+            result = session.execute(select(SquadMember).where(SquadMember.member == member))
             squad_db = result.scalar()
             for key, value in kwargs.items():
                 if hasattr(squad_db, key):
@@ -758,21 +771,49 @@ class DataBase():
             session.commit()
 
     @classmethod
-    def create_squad_rank(cls, name: str, rank: str, permissions: str) -> None:
+    def delete_squad_member(cls, member: str) -> None:
         with cls.Session() as session:
-            session.add(SquadRanks(squad=name, rank=rank, permissions=permissions))
+            session.execute(delete(SquadMember).where(SquadMember.member == member))
             session.commit()
 
     @classmethod
-    def load_squad_ranks(cls, squad: str) -> SquadRanks:
+    def create_squad_rank(cls, squad_id: str, rank: str, permissions: list) -> None:
         with cls.Session() as session:
-            result = session.execute(select(SquadRanks).where(SquadRanks.squad == squad))
+            session.add(SquadRank(squad_id=squad_id, rank=rank))
+            rank_ = session.execute(select(SquadRank).where(and_(SquadRank.squad_id == squad_id, SquadRank.rank == rank))).scalar()
+            for permission in permissions:
+                session.add(SquadRankPermissions(squad_id=squad_id, rank_id=rank_.uid, permission=permission))
+
+            session.commit()
+
+    @classmethod
+    def load_squad_ranks(cls, squad_id: int) -> SquadRank:
+        with cls.Session() as session:
+            result = session.execute(select(SquadRank).where(SquadRank.squad_id == squad_id))
             return result.scalars().all()
 
     @classmethod
-    def save_squad_rank(cls, squad: str, **kwargs: dict) -> None:
+    def load_squad_permissions_for_rank(cls, squad_id: int, rank_id: int) -> list[str]:
+        l: list = []
         with cls.Session() as session:
-            result = session.execute(select(SquadRanks).where(SquadRanks.squad == squad))
+            permissions = session.execute(
+                select(SquadRankPermissions).where(
+                    and_(
+                        SquadRankPermissions.squad_id == squad_id,
+                        SquadRankPermissions.rank_id == rank_id
+                    )
+                )
+            ).scalars().all()
+
+            for i in permissions:
+                l.append(i.permissions)
+
+        return l
+
+    @classmethod
+    def save_squad_rank(cls, squad_id: str, **kwargs: dict) -> None:
+        with cls.Session() as session:
+            result = session.execute(select(SquadRank).where(SquadRank.squad_id == squad_id))
             squad_db = result.scalar()
             for key, value in kwargs.items():
                 if hasattr(squad_db, key):

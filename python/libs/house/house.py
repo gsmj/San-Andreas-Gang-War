@@ -1,10 +1,13 @@
-from pystreamer.dynamicpickup import DynamicPickup
-from pystreamer.dynamicmapicon import DynamicMapIcon
-from pystreamer.dynamictextlabel import DynamicTextLabel
-from ..database.database import DataBase
-from ..utils.data import ServerMode, Colors
-from ..utils.consts import NO_HOUSE_OWNER
 from dataclasses import dataclass
+
+from pystreamer.dynamicmapicon import DynamicMapIcon
+from pystreamer.dynamicpickup import DynamicPickup
+from pystreamer.dynamictextlabel import DynamicTextLabel
+
+from ..database.database import DataBase
+from ..utils.consts import NO_HOUSE_OWNER
+from ..utils.data import Colors, ServerMode
+
 houses: dict[int, tuple["House", "DynamicPickup"]] = {}
 """
 Key: House uid

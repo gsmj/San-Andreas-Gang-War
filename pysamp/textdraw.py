@@ -1,29 +1,14 @@
-from pysamp import (
-    text_draw_alignment,
-    text_draw_background_color,
-    text_draw_box_color,
-    text_draw_color,
-    text_draw_create,
-    text_draw_destroy,
-    text_draw_font,
-    text_draw_hide_for_all,
-    text_draw_hide_for_player,
-    text_draw_show_for_player,
-    text_draw_letter_size,
-    text_draw_set_outline,
-    text_draw_set_preview_model,
-    text_draw_set_preview_rot,
-    text_draw_set_preview_veh_col,
-    text_draw_set_proportional,
-    text_draw_set_selectable,
-    text_draw_set_shadow,
-    text_draw_set_string,
-    text_draw_show_for_all,
-    text_draw_text_size,
-    text_draw_use_box,
-    select_text_draw,
-    cancel_select_text_draw
-)
+from pysamp import (cancel_select_text_draw, select_text_draw,
+                    text_draw_alignment, text_draw_background_color,
+                    text_draw_box_color, text_draw_color, text_draw_create,
+                    text_draw_destroy, text_draw_font, text_draw_hide_for_all,
+                    text_draw_hide_for_player, text_draw_letter_size,
+                    text_draw_set_outline, text_draw_set_preview_model,
+                    text_draw_set_preview_rot, text_draw_set_preview_veh_col,
+                    text_draw_set_proportional, text_draw_set_selectable,
+                    text_draw_set_shadow, text_draw_set_string,
+                    text_draw_show_for_all, text_draw_show_for_player,
+                    text_draw_text_size, text_draw_use_box)
 
 
 class TextDraw:

@@ -1,49 +1,29 @@
-from pysamp import (
-    add_vehicle_component,
-    change_vehicle_color,
-    change_vehicle_paintjob,
-    create_vehicle,
-    destroy_vehicle,
-    detach_trailer_from_vehicle,
-    get_vehicle_component_in_slot,
-    get_vehicle_damage_status,
-    get_vehicle_distance_from_point,
-    get_vehicle_health,
-    get_vehicle_model,
-    get_vehicle_params_car_doors,
-    get_vehicle_params_car_windows,
-    get_vehicle_params_ex,
-    get_vehicle_params_siren_state,
-    get_vehicle_pos,
-    get_vehicle_rotation_quat,
-    get_vehicle_trailer,
-    get_vehicle_velocity,
-    get_vehicle_virtual_world,
-    get_vehicle_z_angle,
-    is_trailer_attached_to_vehicle,
-    is_valid_vehicle,
-    is_vehicle_streamed_in,
-    link_vehicle_to_interior,
-    remove_vehicle_component,
-    repair_vehicle,
-    set_vehicle_angular_velocity,
-    set_vehicle_health,
-    set_vehicle_number_plate,
-    set_vehicle_params_car_doors,
-    set_vehicle_params_car_windows,
-    set_vehicle_params_ex,
-    set_vehicle_params_for_player,
-    set_vehicle_pos,
-    set_vehicle_to_respawn,
-    set_vehicle_velocity,
-    set_vehicle_virtual_world,
-    set_vehicle_z_angle,
-    update_vehicle_damage_status,
-)
-
 from typing import Optional, Tuple
-from pysamp.event import event
+
 from samp import INVALID_PLAYER_ID
+
+from pysamp import (add_vehicle_component, change_vehicle_color,
+                    change_vehicle_paintjob, create_vehicle, destroy_vehicle,
+                    detach_trailer_from_vehicle, get_vehicle_component_in_slot,
+                    get_vehicle_damage_status, get_vehicle_distance_from_point,
+                    get_vehicle_health, get_vehicle_model,
+                    get_vehicle_params_car_doors,
+                    get_vehicle_params_car_windows, get_vehicle_params_ex,
+                    get_vehicle_params_siren_state, get_vehicle_pos,
+                    get_vehicle_rotation_quat, get_vehicle_trailer,
+                    get_vehicle_velocity, get_vehicle_virtual_world,
+                    get_vehicle_z_angle, is_trailer_attached_to_vehicle,
+                    is_valid_vehicle, is_vehicle_streamed_in,
+                    link_vehicle_to_interior, remove_vehicle_component,
+                    repair_vehicle, set_vehicle_angular_velocity,
+                    set_vehicle_health, set_vehicle_number_plate,
+                    set_vehicle_params_car_doors,
+                    set_vehicle_params_car_windows, set_vehicle_params_ex,
+                    set_vehicle_params_for_player, set_vehicle_pos,
+                    set_vehicle_to_respawn, set_vehicle_velocity,
+                    set_vehicle_virtual_world, set_vehicle_z_angle,
+                    update_vehicle_damage_status)
+from pysamp.event import event
 
 
 class Vehicle:

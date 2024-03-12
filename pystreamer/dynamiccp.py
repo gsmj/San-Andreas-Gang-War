@@ -1,14 +1,9 @@
 from pysamp.event import event
-from . import (
-    create_dynamic_cp,
-    create_dynamic_cp_ex,
-    destroy_dynamic_cp,
-    is_valid_dynamic_cp,
-    toggle_player_dynamic_cp,
-    toggle_player_all_dynamic_cps,
-    is_player_in_dynamic_cp,
-    get_player_visible_dynamic_cp,
-)
+
+from . import (create_dynamic_cp, create_dynamic_cp_ex, destroy_dynamic_cp,
+               get_player_visible_dynamic_cp, is_player_in_dynamic_cp,
+               is_valid_dynamic_cp, toggle_player_all_dynamic_cps,
+               toggle_player_dynamic_cp)
 
 
 class DynamicCheckpoint:
@@ -98,5 +93,5 @@ class DynamicCheckpoint:
     def on_player_leave(cls, player_id: int, checkpoint_id: int):
         return (Player(player_id), cls(checkpoint_id))
 
-from pysamp.player import Player # noqa
-from pysamp.vehicle import Vehicle # noqa
+from pysamp.player import Player  # noqa
+from pysamp.vehicle import Vehicle  # noqa

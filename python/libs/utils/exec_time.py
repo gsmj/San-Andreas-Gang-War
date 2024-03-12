@@ -1,6 +1,7 @@
-import time
 import functools
-from typing import Callable, Any
+import time
+from typing import Any, Callable
+
 
 def exec_time(function: Callable[..., Any]) -> Any:
     functools.wraps(function)

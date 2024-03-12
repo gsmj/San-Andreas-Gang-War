@@ -1,6 +1,8 @@
-import smtplib, ssl
-from smtplib import SMTP_SSL
+import smtplib
+import ssl
 from email.message import EmailMessage
+from smtplib import SMTP_SSL
+
 ROOT = "YUDBBot@gmail.com"
 PASSWORD = "vxmo ddrz autc kvby"
 email = EmailMessage()

@@ -1,23 +1,16 @@
-from pysamp.event import event
-from . import (
-    create_dynamic_actor,
-    create_dynamic_actor_ex,
-    destroy_dynamic_actor,
-    is_valid_dynamic_actor,
-    is_dynamic_actor_streamed_in,
-    get_dynamic_actor_virtual_world,
-    set_dynamic_actor_virtual_world,
-    apply_dynamic_actor_animation,
-    clear_dynamic_actor_animations,
-    set_dynamic_actor_facing_angle,
-    set_dynamic_actor_pos,
-    set_dynamic_actor_health,
-    set_dynamic_actor_invulnerable,
-    is_dynamic_actor_invulnerable,
-    get_player_target_dynamic_actor,
-    get_player_camera_target_dyn_actor,
-)
 from typing import Tuple
+
+from pysamp.event import event
+
+from . import (apply_dynamic_actor_animation, clear_dynamic_actor_animations,
+               create_dynamic_actor, create_dynamic_actor_ex,
+               destroy_dynamic_actor, get_dynamic_actor_virtual_world,
+               get_player_camera_target_dyn_actor,
+               get_player_target_dynamic_actor, is_dynamic_actor_invulnerable,
+               is_dynamic_actor_streamed_in, is_valid_dynamic_actor,
+               set_dynamic_actor_facing_angle, set_dynamic_actor_health,
+               set_dynamic_actor_invulnerable, set_dynamic_actor_pos,
+               set_dynamic_actor_virtual_world)
 
 
 class DynamicActor:
@@ -207,4 +200,4 @@ class DynamicActor:
         return (cls(actor_id), Player(for_player))
 
 from pysamp.player import Player  # noqa
-from pysamp.vehicle import Vehicle # noqa
+from pysamp.vehicle import Vehicle  # noqa

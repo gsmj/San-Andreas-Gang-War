@@ -1,9 +1,5 @@
-from . import (
-    create_dynamic_map_icon,
-    create_dynamic_map_icon_ex,
-    destroy_dynamic_map_icon,
-    is_valid_dynamic_map_icon,
-)
+from . import (create_dynamic_map_icon, create_dynamic_map_icon_ex,
+               destroy_dynamic_map_icon, is_valid_dynamic_map_icon)
 
 
 class DynamicMapIcon:
@@ -82,5 +78,5 @@ class DynamicMapIcon:
     def is_valid(self):
         return is_valid_dynamic_map_icon(self.id)
 
-from pysamp.player import Player # noqa
-from pysamp.vehicle import Vehicle # noqa
+from pysamp.player import Player  # noqa
+from pysamp.vehicle import Vehicle  # noqa

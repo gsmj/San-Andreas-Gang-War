@@ -1,7 +1,4 @@
-from pysamp import (
-    create_pickup, destroy_pickup,
-    # add_static_pickup
-)
+from pysamp import create_pickup, destroy_pickup  # add_static_pickup
 
 
 class Pickup:

@@ -1,12 +1,9 @@
-from . import (
-    create_dynamic_3d_text_label,
-    create_dynamic_3d_text_label_ex,
-    destroy_dynamic_3d_text_label,
-    is_valid_dynamic_3d_text_label,
-    get_dynamic_3d_text_label_text,
-    update_dynamic_3d_text_label_text,
-)
 from samp import INVALID_PLAYER_ID, INVALID_VEHICLE_ID
+
+from . import (create_dynamic_3d_text_label, create_dynamic_3d_text_label_ex,
+               destroy_dynamic_3d_text_label, get_dynamic_3d_text_label_text,
+               is_valid_dynamic_3d_text_label,
+               update_dynamic_3d_text_label_text)
 
 
 class DynamicTextLabel:
@@ -103,5 +100,5 @@ class DynamicTextLabel:
     def update_text(self, color: int, text: str):
         return update_dynamic_3d_text_label_text(self.id, color, text)
 
-from pysamp.player import Player # noqa
-from pysamp.vehicle import Vehicle # noqa
+from pysamp.player import Player  # noqa
+from pysamp.vehicle import Vehicle  # noqa

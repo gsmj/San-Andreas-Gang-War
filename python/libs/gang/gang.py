@@ -1,8 +1,10 @@
 from dataclasses import dataclass
+
 from pystreamer.dynamiccp import DynamicCheckpoint
 from pystreamer.dynamicpickup import DynamicPickup
+
 from ..utils.data import Colors, ServerMode
-from dataclasses import dataclass
+
 
 @dataclass(repr=False)
 class Gang:

@@ -76,7 +76,7 @@
     },
     "password": "",
     "pawn": {
-        "legacy_plugins": ["streamer.so", "PySAMP.so", "DriftPointsCounter.so"],
+        "legacy_plugins": ["streamer", "PySAMPrc4", "DriftPointsCounter"],
         "main_scripts": [
             "empty"
         ]

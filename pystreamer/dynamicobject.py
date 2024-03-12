@@ -1,29 +1,21 @@
-from pysamp.event import event
-from . import (
-    create_dynamic_object,
-    create_dynamic_object_ex,
-    destroy_dynamic_object,
-    is_valid_dynamic_object,
-    set_dynamic_object_pos,
-    set_dynamic_object_rot,
-    get_dynamic_object_no_camera_col,
-    set_dynamic_object_no_camera_col,
-    move_dynamic_object,
-    stop_dynamic_object,
-    is_dynamic_object_moving,
-    attach_camera_to_dynamic_object,
-    attach_dynamic_object_to_object,
-    attach_dynamic_object_to_player,
-    attach_dynamic_object_to_vehicle,
-    edit_dynamic_object,
-    is_dynamic_object_material_used,
-    remove_dynamic_object_material,
-    set_dynamic_object_material,
-    is_dynamic_object_material_text_used,
-    remove_dynamic_object_material_text,
-    set_dynamic_object_material_text,
-)
 from typing import Tuple
+
+from pysamp.event import event
+
+from . import (attach_camera_to_dynamic_object,
+               attach_dynamic_object_to_object,
+               attach_dynamic_object_to_player,
+               attach_dynamic_object_to_vehicle, create_dynamic_object,
+               create_dynamic_object_ex, destroy_dynamic_object,
+               edit_dynamic_object, get_dynamic_object_no_camera_col,
+               is_dynamic_object_material_text_used,
+               is_dynamic_object_material_used, is_dynamic_object_moving,
+               is_valid_dynamic_object, move_dynamic_object,
+               remove_dynamic_object_material,
+               remove_dynamic_object_material_text,
+               set_dynamic_object_material, set_dynamic_object_material_text,
+               set_dynamic_object_no_camera_col, set_dynamic_object_pos,
+               set_dynamic_object_rot, stop_dynamic_object)
 
 
 class DynamicObject:
@@ -379,5 +371,5 @@ class DynamicObject:
     ):
         return (Player(playerid), weapon_id, cls(object_id), x, y, z)
 
-from pysamp.player import Player # noqa
-from pysamp.vehicle import Vehicle # noqa
+from pysamp.player import Player  # noqa
+from pysamp.vehicle import Vehicle  # noqa

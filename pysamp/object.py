@@ -1,26 +1,14 @@
-from pysamp import (
-    create_object,
-    get_object_model,
-    get_object_pos,
-    set_object_pos,
-    set_object_rot,
-    get_object_rot,
-    set_object_no_camera_col,
-    is_valid_object,
-    destroy_object,
-    move_object,
-    stop_object,
-    is_object_moving,
-    set_object_material,
-    set_object_material_text,
-    set_objects_default_camera_col
-)
-from pysamp.event import event
-from samp import (
-    OBJECT_MATERIAL_SIZE_256x128
-)
-
 from typing import Tuple
+
+from samp import OBJECT_MATERIAL_SIZE_256x128
+
+from pysamp import (create_object, destroy_object, get_object_model,
+                    get_object_pos, get_object_rot, is_object_moving,
+                    is_valid_object, move_object, set_object_material,
+                    set_object_material_text, set_object_no_camera_col,
+                    set_object_pos, set_object_rot,
+                    set_objects_default_camera_col, stop_object)
+from pysamp.event import event
 
 
 class Object:

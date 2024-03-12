@@ -16,4 +16,4 @@ class Drift:
     def on_end(cls, player_id: int, value: int, combo: int, reason: int):
         return (Player(player_id), value, combo, reason)
 
-from pysamp.player import Player # noqa
+from pysamp.player import Player  # noqa

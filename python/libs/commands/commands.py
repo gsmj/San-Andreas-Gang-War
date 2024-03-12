@@ -1,28 +1,25 @@
-from pysamp.commands import cmd
+import random
+from datetime import datetime as dt
+from typing import Literal
+from zoneinfo import ZoneInfo
+
+from samp import (PLAYER_STATE_SPECTATING,  # type: ignore
+                  SPECIAL_ACTION_USEJETPACK)
+
 from pysamp import send_client_message_to_all, set_world_time
+from pysamp.commands import cmd
 from pysamp.dialog import Dialog
-from pysamp.timer import set_timer, kill_timer
-from ...player import Player, Dialogs
+from pysamp.timer import kill_timer, set_timer
+
+from ...player import Dialogs, Player
+from ...vehicle import Vehicle
+from ..database.database import DataBase
 from ..gang.gang import gangs, gangzone_pool
 from ..house.house import houses
-from ..utils.data import (
-    Colors,
-    MonthsConverter,
-    ServerMode,
-    WeatherIDs,
-    convert_seconds,
-    VIPData,
-    ServerInfo,
-)
-from ..utils.consts import TIMER_ID_NONE, NO_HOUSE_OWNER
-from .cmd_ex import cmd_ex, CommandType
-from ..database.database import DataBase
-from datetime import datetime as dt
-from zoneinfo import ZoneInfo
-import random
-from ...vehicle import Vehicle
-from samp import SPECIAL_ACTION_USEJETPACK, PLAYER_STATE_SPECTATING # type: ignore
-from typing import Literal
+from ..utils.consts import NO_HOUSE_OWNER, TIMER_ID_NONE
+from ..utils.data import (Colors, MonthsConverter, ServerInfo, ServerMode,
+                          VIPData, WeatherIDs, convert_seconds)
+from .cmd_ex import CommandType, cmd_ex
 
 
 @cmd_ex(
@@ -1921,14 +1918,14 @@ def house(player: Player):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerMode.gangwar_world]):
+    if not player.check_player_mode([ServerMode.freeroam_world]):
         return
-
-    if not player.checks.in_house:
-        return player.send_error_message("Вы не находитесь в доме!")
 
     if not player.house:
         return player.send_error_message("У Вас нет дома!")
+
+    if not player.checks.in_house:
+        return player.send_error_message("Вы не находитесь в доме!")
 
     return Dialogs.show_house_menu_dialog(player)
 
@@ -2030,6 +2027,8 @@ def squad(player: Player):
     if not player.squad:
         return player.send_error_message("У Вас нет фракции!")
 
+    return Dialogs.show_squad_info_dialog(player)
+
 @cmd_ex(
     cmd,
     description="Создание фракции",
@@ -2048,64 +2047,3 @@ def createsquad(player: Player):
         return player.send_error_message("У Вас уже есть фракция!")
 
     return Dialogs.show_squad_create_dialog(player)
-
-
-@cmd_ex(
-    cmd,
-    description="Запись в кэш игрока",
-    mode=CommandType.admin_type
-)
-@Player.using_registry
-def pcache(player: Player, player_id: int, key: str, value: str):
-    if not player.admin.check_command_access(7):
-        return
-
-    player_ = Player.from_registry_native(int(player_id))
-    player_.cache[key] = value
-    return player.send_notification_message("Кэш обновлён!")
-
-@cmd_ex(
-    cmd,
-    description="Отладочная информация о домах",
-    mode=CommandType.admin_type
-)
-@Player.using_registry
-def hdata(player: Player):
-    if not player.admin.check_command_access(7):
-        return
-
-    content = ""
-    for house in houses.values():
-        content += f"House: {house[0]} | Pickup: {house[1]}\n"
-
-    Dialog.create(
-        0,
-        "Отладочная информация о домах",
-        content,
-        "Закрыть",
-        ""
-    ).show(player)
-    return player.send_notification_message(f"Всего домов: {len(houses)}")
-
-@cmd_ex(
-    cmd,
-    description="Отладочная информация о гангзонах",
-    mode=CommandType.admin_type
-)
-@Player.using_registry
-def gdata(player: Player):
-    if not player.admin.check_command_access(7):
-        return
-
-    content = ""
-    for gangzone in gangzone_pool.values():
-        content += f"{gangzone}\n"
-
-    Dialog.create(
-        0,
-        "Отладочная информация о гангзонах",
-        content,
-        "Закрыть",
-        ""
-    ).show(player)
-    return player.send_notification_message(f"Всего гангзон: {len(gangzone_pool)}")

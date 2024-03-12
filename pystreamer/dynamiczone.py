@@ -1,45 +1,27 @@
-from pysamp.event import event
-from . import (
-    create_dynamic_circle,
-    create_dynamic_circle_ex,
-    create_dynamic_cylinder,
-    create_dynamic_cylinder_ex,
-    create_dynamic_sphere,
-    create_dynamic_sphere_ex,
-    create_dynamic_rectangle,
-    create_dynamic_rectangle_ex,
-    create_dynamic_cuboid,
-    create_dynamic_cuboid_ex,
-    create_dynamic_cube,
-    create_dynamic_cube_ex,
-    create_dynamic_polygon,
-    create_dynamic_polygon_ex,
-    destroy_dynamic_area,
-    is_valid_dynamic_area,
-    get_dynamic_area_type,
-    get_dynamic_polygon_points,
-    get_dynamic_polygon_number_points,
-    is_player_in_dynamic_area,
-    is_player_in_any_dynamic_area,
-    is_any_player_in_dynamic_area,
-    is_any_player_in_any_dynamic_area,
-    get_player_dynamic_areas,
-    get_player_number_dynamic_areas,
-    is_point_in_dynamic_area,
-    is_point_in_any_dynamic_area,
-    is_line_in_dynamic_area,
-    is_line_in_any_dynamic_area,
-    get_dynamic_areas_for_point,
-    get_number_dynamic_areas_for_point,
-    get_dynamic_areas_for_line,
-    get_number_dynamic_areas_for_line,
-    attach_dynamic_area_to_object,
-    attach_dynamic_area_to_player,
-    attach_dynamic_area_to_vehicle,
-    toggle_dyn_area_spectate_mode,
-    is_toggle_dyn_area_spectate_mode,
-)
 from samp import INVALID_PLAYER_ID
+
+from pysamp.event import event
+
+from . import (attach_dynamic_area_to_object, attach_dynamic_area_to_player,
+               attach_dynamic_area_to_vehicle, create_dynamic_circle,
+               create_dynamic_circle_ex, create_dynamic_cube,
+               create_dynamic_cube_ex, create_dynamic_cuboid,
+               create_dynamic_cuboid_ex, create_dynamic_cylinder,
+               create_dynamic_cylinder_ex, create_dynamic_polygon,
+               create_dynamic_polygon_ex, create_dynamic_rectangle,
+               create_dynamic_rectangle_ex, create_dynamic_sphere,
+               create_dynamic_sphere_ex, destroy_dynamic_area,
+               get_dynamic_area_type, get_dynamic_areas_for_line,
+               get_dynamic_areas_for_point, get_dynamic_polygon_number_points,
+               get_dynamic_polygon_points, get_number_dynamic_areas_for_line,
+               get_number_dynamic_areas_for_point, get_player_dynamic_areas,
+               get_player_number_dynamic_areas,
+               is_any_player_in_any_dynamic_area,
+               is_any_player_in_dynamic_area, is_line_in_any_dynamic_area,
+               is_line_in_dynamic_area, is_player_in_any_dynamic_area,
+               is_player_in_dynamic_area, is_point_in_any_dynamic_area,
+               is_point_in_dynamic_area, is_toggle_dyn_area_spectate_mode,
+               is_valid_dynamic_area, toggle_dyn_area_spectate_mode)
 
 
 class DynamicZone:
@@ -516,5 +498,5 @@ class DynamicZone:
     def on_player_leave(cls, player_id: int, area_id: int):
         return (Player(player_id), cls(area_id))
 
-from pysamp.player import Player # noqa
-from pysamp.vehicle import Vehicle # noqa
+from pysamp.player import Player  # noqa
+from pysamp.vehicle import Vehicle  # noqa

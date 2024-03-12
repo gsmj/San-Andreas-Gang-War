@@ -1,26 +1,18 @@
+from pysamp import (create_player_text_draw, player_text_draw_alignment,
+                    player_text_draw_background_color,
+                    player_text_draw_box_color, player_text_draw_color,
+                    player_text_draw_destroy, player_text_draw_font,
+                    player_text_draw_hide, player_text_draw_letter_size,
+                    player_text_draw_set_outline,
+                    player_text_draw_set_preview_model,
+                    player_text_draw_set_preview_rot,
+                    player_text_draw_set_preview_veh_col,
+                    player_text_draw_set_proportional,
+                    player_text_draw_set_selectable,
+                    player_text_draw_set_shadow, player_text_draw_set_string,
+                    player_text_draw_show, player_text_draw_text_size,
+                    player_text_draw_use_box)
 from pysamp.player import Player
-from pysamp import (
-    create_player_text_draw,
-    player_text_draw_alignment,
-    player_text_draw_background_color,
-    player_text_draw_box_color,
-    player_text_draw_color,
-    player_text_draw_destroy,
-    player_text_draw_font,
-    player_text_draw_hide,
-    player_text_draw_letter_size,
-    player_text_draw_set_outline,
-    player_text_draw_set_preview_model,
-    player_text_draw_set_preview_rot,
-    player_text_draw_set_preview_veh_col,
-    player_text_draw_set_proportional,
-    player_text_draw_set_selectable,
-    player_text_draw_set_shadow,
-    player_text_draw_set_string,
-    player_text_draw_show,
-    player_text_draw_text_size,
-    player_text_draw_use_box
-)
 
 
 class PlayerTextDraw:

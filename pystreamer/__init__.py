@@ -1,5 +1,6 @@
-from pysamp import call_native_function, register_callback
 from samp import INVALID_PLAYER_ID, INVALID_VEHICLE_ID
+
+from pysamp import call_native_function, register_callback
 
 
 def register_callbacks():

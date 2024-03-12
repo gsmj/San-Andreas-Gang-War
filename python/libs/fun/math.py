@@ -1,9 +1,12 @@
+import random
 from dataclasses import dataclass
+
+from pysamp import send_client_message_to_all
+from pysamp.timer import kill_timer, set_timer
+
 from ..utils.consts import ID_NONE, TIMER_ID_NONE
 from ..utils.data import Colors
-from pysamp import send_client_message_to_all
-from pysamp.timer import set_timer, kill_timer
-import random
+
 
 @dataclass
 class MathExpressions:

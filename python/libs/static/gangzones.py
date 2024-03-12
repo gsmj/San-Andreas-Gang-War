@@ -1,5 +1,7 @@
 from pysamp.gangzone import Gangzone
+
 from ..utils.data import ServerMode
+
 deathmatch: dict[int, "Gangzone"] = {}
 freeroam: dict[int, "Gangzone"] = {}
 

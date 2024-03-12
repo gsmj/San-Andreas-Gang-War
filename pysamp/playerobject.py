@@ -1,27 +1,17 @@
 from typing import Tuple
 
-from pysamp.event import event
-
 from samp import OBJECT_MATERIAL_SIZE_256x128
 
-from pysamp import (
-    attach_player_object_to_vehicle,
-    create_player_object,
-    destroy_player_object,
-    edit_player_object,
-    get_player_object_model,
-    get_player_object_pos,
-    get_player_object_rot,
-    is_player_object_moving,
-    is_valid_player_object,
-    move_player_object,
-    set_player_object_material,
-    set_player_object_material_text,
-    set_player_object_no_camera_col,
-    set_player_object_pos,
-    set_player_object_rot,
-    stop_player_object,
-)
+from pysamp import (attach_player_object_to_vehicle, create_player_object,
+                    destroy_player_object, edit_player_object,
+                    get_player_object_model, get_player_object_pos,
+                    get_player_object_rot, is_player_object_moving,
+                    is_valid_player_object, move_player_object,
+                    set_player_object_material,
+                    set_player_object_material_text,
+                    set_player_object_no_camera_col, set_player_object_pos,
+                    set_player_object_rot, stop_player_object)
+from pysamp.event import event
 
 
 class PlayerObject:

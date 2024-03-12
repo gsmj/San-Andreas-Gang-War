@@ -1,8 +1,10 @@
 import functools
+from dataclasses import dataclass
 from functools import wraps
 from typing import Callable
-from dataclasses import dataclass
+
 from pysamp.commands import cmd
+
 commands: dict[str, list[str, int]] = {}
 _NO_DESC: str = "Нет описания"
 

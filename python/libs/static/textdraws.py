@@ -1,5 +1,6 @@
-from pysamp.textdraw import TextDraw
 from pysamp.playertextdraw import PlayerTextDraw
+from pysamp.textdraw import TextDraw
+
 logo: dict[int, "TextDraw"] = {}
 capture_td: dict[int, "TextDraw"]  = {}
 class_selection_td: dict[int, "TextDraw"]  = {}

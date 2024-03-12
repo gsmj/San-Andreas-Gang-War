@@ -1,5 +1,6 @@
-from pystreamer.dynamicobject import DynamicObject
 from pysamp.player import Player
+from pystreamer.dynamicobject import DynamicObject
+
 from ..utils.data import ServerMode
 
 

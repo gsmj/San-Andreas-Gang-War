@@ -1,4 +1,5 @@
 from typing import Any
+
 weak_cache: dict[Any] = {}
 
 def to_cache(**kwargs: dict[Any]) -> dict:

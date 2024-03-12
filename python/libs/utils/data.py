@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from random import randint
-import samp # type: ignore
+
+import samp  # type: ignore
 
 
 @dataclass

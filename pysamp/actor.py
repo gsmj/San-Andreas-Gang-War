@@ -1,22 +1,12 @@
-from pysamp import (
-    apply_actor_animation,
-    clear_actor_animations,
-    create_actor,
-    destroy_actor,
-    get_actor_facing_angle,
-    get_actor_health,
-    get_actor_pos,
-    get_actor_virtual_world,
-    is_actor_invulnerable,
-    is_actor_streamed_in,
-    is_valid_actor,
-    set_actor_facing_angle,
-    set_actor_health,
-    set_actor_invulnerable,
-    set_actor_pos,
-    set_actor_virtual_world,
-)
 from typing import Optional, Tuple
+
+from pysamp import (apply_actor_animation, clear_actor_animations,
+                    create_actor, destroy_actor, get_actor_facing_angle,
+                    get_actor_health, get_actor_pos, get_actor_virtual_world,
+                    is_actor_invulnerable, is_actor_streamed_in,
+                    is_valid_actor, set_actor_facing_angle, set_actor_health,
+                    set_actor_invulnerable, set_actor_pos,
+                    set_actor_virtual_world)
 from pysamp.event import event
 
 

@@ -1,10 +1,6 @@
-from pysamp import (
-    attach_3d_text_label_to_player,
-    attach_3d_text_label_to_vehicle,
-    create_3d_text_label,
-    delete_3d_text_label,
-    update_3d_text_label_text,
-)
+from pysamp import (attach_3d_text_label_to_player,
+                    attach_3d_text_label_to_vehicle, create_3d_text_label,
+                    delete_3d_text_label, update_3d_text_label_text)
 
 
 class TextLabel:
@@ -94,5 +90,5 @@ class TextLabel:
         """
         return update_3d_text_label_text(self.id, color, text)
 
-from pysamp.vehicle import Vehicle  # noqa
 from pysamp.player import Player  # noqa
+from pysamp.vehicle import Vehicle  # noqa

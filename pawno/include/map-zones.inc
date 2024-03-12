@@ -189,7 +189,7 @@ enum E_MAP_ZONE_DATA {
 	E_MAP_ZONE_AREA_COUNT
 };
 
-static const MapZoneData[][E_MAP_ZONE_DATA] = {	
+static const MapZoneData[][E_MAP_ZONE_DATA] = {
 	{!"Bayside Marina", 2007, 1},
 	{!"Bayside", 2006, 1},
 	{!"Battery Point", 2005, 1},
@@ -794,14 +794,14 @@ static stock _GetMapZoneLoopStartIndex(Float:x) {
 
 
 #define GetMapZoneAtPoint3D GetMapZoneAtPoint
-stock MapZone:GetMapZoneAtPoint(Float:x, Float:y, Float:z) {
+public MapZone:GetMapZoneAtPoint(Float:x, Float:y, Float:z) {
 	if (!(-2997.469970 <= x < 2997.060058) || !(-2892.969970 <= y < 2993.870117) || !(-242.990005 <= z < 900.000000)) {
 		return INVALID_MAP_ZONE_ID;
 	}
 
 	for (new index = _GetMapZoneLoopStartIndex(x); index >= 0; index--) {
-		if (x < MapZoneAreaData[index][E_MAP_ZONE_AREA_MAX_X] && 
-			(MapZoneAreaData[index][E_MAP_ZONE_AREA_MIN_Y] <= y < MapZoneAreaData[index][E_MAP_ZONE_AREA_MAX_Y]) && 
+		if (x < MapZoneAreaData[index][E_MAP_ZONE_AREA_MAX_X] &&
+			(MapZoneAreaData[index][E_MAP_ZONE_AREA_MIN_Y] <= y < MapZoneAreaData[index][E_MAP_ZONE_AREA_MAX_Y]) &&
 			(MapZoneAreaData[index][E_MAP_ZONE_AREA_MIN_Z] <= z < MapZoneAreaData[index][E_MAP_ZONE_AREA_MAX_Z])
 		) {
 			return MapZoneAreaData[index][E_MAP_ZONE_AREA_ID];
@@ -813,7 +813,7 @@ stock MapZone:GetMapZoneAtPoint(Float:x, Float:y, Float:z) {
 
 
 #define GetPlayerMapZone3D GetPlayerMapZone
-stock MapZone:GetPlayerMapZone(playerid) {
+public MapZone:GetPlayerMapZone(playerid) {
 	new Float:x, Float:y, Float:z;
 
 	if (!GetPlayerPos(playerid, x, y, z)) {
@@ -821,118 +821,4 @@ stock MapZone:GetPlayerMapZone(playerid) {
 	}
 
 	return GetMapZoneAtPoint(x, y, z);
-}
-
-
-#define GetVehicleMapZone3D GetVehicleMapZone
-stock MapZone:GetVehicleMapZone(vehicleid) {
-	new Float:x, Float:y, Float:z;
-
-	if (!GetVehiclePos(vehicleid, x, y, z)) {
-		return INVALID_MAP_ZONE_ID;
-	}
-
-	return GetMapZoneAtPoint(x, y, z);
-}
-
-
-stock MapZone:GetMapZoneAtPoint2D(Float:x, Float:y) {
-	if (!(-2997.469970 <= x < 2997.060058) || !(-2892.969970 <= y < 2993.870117)) {
-		return INVALID_MAP_ZONE_ID;
-	}
-
-	for (new index = _GetMapZoneLoopStartIndex(x); index >= 0; index--) {
-		if (x < MapZoneAreaData[index][E_MAP_ZONE_AREA_MAX_X] && 
-			(MapZoneAreaData[index][E_MAP_ZONE_AREA_MIN_Y] <= y < MapZoneAreaData[index][E_MAP_ZONE_AREA_MAX_Y])
-		) {
-			return MapZoneAreaData[index][E_MAP_ZONE_AREA_ID];
-		}
-	}
-
-	return INVALID_MAP_ZONE_ID;
-}
-
-
-stock MapZone:GetPlayerMapZone2D(playerid) {
-	new Float:x, Float:y, Float:z;
-
-	if (!GetPlayerPos(playerid, x, y, z)) {
-		return INVALID_MAP_ZONE_ID;
-	}
-
-	return GetMapZoneAtPoint2D(x, y);
-}
-
-
-stock MapZone:GetVehicleMapZone2D(vehicleid) {
-	new Float:x, Float:y, Float:z;
-
-	if (!GetVehiclePos(vehicleid, x, y, z)) {
-		return INVALID_MAP_ZONE_ID;
-	}
-
-	return GetMapZoneAtPoint2D(x, y);
-}
-
-
-stock GetMapZoneCount() {
-	return sizeof(MapZoneData);
-}
-
-
-stock bool:IsValidMapZone(MapZone:id) {
-	return 0 <= _:id < sizeof(MapZoneData);
-}
-
-
-stock bool:GetMapZoneName(MapZone:id, name[], size = sizeof(name)) {
-	if (!IsValidMapZone(id)) {
-		return false;
-	}
-
-	strunpack(name, MapZoneData[_:id][E_MAP_ZONE_NAME], size);
-	return true;
-}
-
-
-stock bool:GetMapZoneSoundID(MapZone:id, &soundid) {
-	if (!IsValidMapZone(id)) {
-		return false;
-	}
-
-	soundid = MapZoneData[_:id][E_MAP_ZONE_SOUND_ID];
-	return true;
-}
-
-
-stock bool:GetMapZoneAreaCount(MapZone:id, &count) {
-	if (!IsValidMapZone(id)) {
-		return false;
-	}
-
-	count = MapZoneData[_:id][E_MAP_ZONE_AREA_COUNT];
-	return true;
-}
-
-
-stock GetMapZoneAreaPos(MapZone:id, &Float:minX = 0.0, &Float:minY = 0.0, &Float:minZ = 0.0, &Float:maxX = 0.0, &Float:maxY = 0.0, &Float:maxZ = 0.0, start = 0) {
-	if (!IsValidMapZone(id) || start < 0) {
-		return -1;
-	}
-
-	for (new size = sizeof(MapZoneAreaData); start < size; start++) {
-		if (MapZoneAreaData[start][E_MAP_ZONE_AREA_ID] == id) {
-			minX = MapZoneAreaData[start][E_MAP_ZONE_AREA_MIN_X];
-			minY = MapZoneAreaData[start][E_MAP_ZONE_AREA_MIN_Y];
-			minZ = MapZoneAreaData[start][E_MAP_ZONE_AREA_MIN_Z];
-
-			maxX = MapZoneAreaData[start][E_MAP_ZONE_AREA_MAX_X];
-			maxY = MapZoneAreaData[start][E_MAP_ZONE_AREA_MAX_Y];
-			maxZ = MapZoneAreaData[start][E_MAP_ZONE_AREA_MAX_Z];
-
-			return start;
-		}
-	}
-
-	return -1;
 }
