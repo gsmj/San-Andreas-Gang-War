@@ -3,6 +3,7 @@ from pysamp.textdraw import TextDraw
 
 logo: dict[int, "TextDraw"] = {}
 capture_td: dict[int, "TextDraw"]  = {}
+squad_capture_td: dict[int, "TextDraw"] = {}
 class_selection_td: dict[int, "TextDraw"]  = {}
 commands_bottom: dict[int, "TextDraw"]  = {}
 commands_bottom_gw: dict[int, "TextDraw"]  = {}
@@ -72,6 +73,40 @@ def create_textdraws() -> None:
     capture_td[2].background_color(255)
     capture_td[2].font(1)
     capture_td[2].set_proportional(True)
+
+    squad_capture_td[0] = TextDraw.create(5.000000, 275.000000, "Time: ")
+    squad_capture_td[0].letter_size(0.323332, 1.346961)
+    squad_capture_td[0].alignment(1)
+    squad_capture_td[0].color(-1)
+    squad_capture_td[0].set_shadow(0)
+    squad_capture_td[0].set_outline(1)
+    squad_capture_td[0].background_color(128)
+    squad_capture_td[0].font(1)
+    squad_capture_td[0].set_proportional(True)
+
+    squad_capture_td[1] = TextDraw.create(5.000000, 290.000000, "Varios Los Aztecas  ~r~0")
+    squad_capture_td[1].letter_size(0.315997, 1.226662)
+    squad_capture_td[1].alignment(1)
+    squad_capture_td[1].color(-1)
+    squad_capture_td[1].set_shadow(0)
+    squad_capture_td[1].set_outline(1)
+    squad_capture_td[1].background_color(255)
+    squad_capture_td[1].font(1)
+    squad_capture_td[1].set_proportional(True)
+
+    squad_capture_td[2] = TextDraw.create(5.000000, 300.000000, "Los Santos Vagos  ~r~1")
+    squad_capture_td[2].letter_size(0.315997, 1.226662)
+    squad_capture_td[2].alignment(1)
+    squad_capture_td[2].color(-1)
+    squad_capture_td[2].set_shadow(0)
+    squad_capture_td[2].set_outline(1)
+    squad_capture_td[2].background_color(255)
+    squad_capture_td[2].font(1)
+    squad_capture_td[2].set_proportional(True)
+    squad_capture_td[2].set_outline(1)
+    squad_capture_td[2].background_color(255)
+    squad_capture_td[2].font(1)
+    squad_capture_td[2].set_proportional(True)
 
     commands_bottom[0] = TextDraw.create(10.000000, 435.000000, "/m - Menu")
     commands_bottom[1] = TextDraw.create(70.000000, 435.000000, "/w - Weapons")

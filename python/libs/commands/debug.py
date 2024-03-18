@@ -70,23 +70,3 @@ def gdata(player: Player):
         ""
     ).show(player)
     return player.send_notification_message(f"Всего гангзон: {len(gangzone_pool)}")
-
-@cmd_ex(
-    cmd,
-    description="Перезапуск модуля",
-    mode=CommandType.admin_type
-)
-@Player.using_registry
-def reload(player: Player, module: str):
-    if not player.admin.check_command_access(7):
-        return
-
-    module_ = importlib.import_module(module, "python")
-    importlib.reload(module_)
-
-
-@cmd
-@Player.using_registry
-def callNativeTest(player: Player) -> None:
-    map_zone = player.get_pos_zone_name()
-    player.send_notification_message(f"Zone Index: {map_zone}")

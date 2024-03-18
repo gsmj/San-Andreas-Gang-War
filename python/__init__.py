@@ -65,10 +65,15 @@ def on_ready():
     gangzones = DataBase.load_gangzones_order_by()
     if gangzones:
         for gangzone in gangzones:
+            try:
+                color = gangs[gangzone.gang_id].color
+            except:
+                color = Colors.white
+
             GangZoneData(
                 gangzone.id,
                 gangzone.gang_id,
-                gangzone.color,
+                color,
                 gangzone.min_x,
                 gangzone.min_y,
                 gangzone.min_x,
@@ -78,12 +83,18 @@ def on_ready():
     squad_gangzones = DataBase.load_squad_gangzones_order_by()
     if squad_gangzones:
         for squad_gz in squad_gangzones:
+            try:
+                color = squad_pool_id[squad_gz.squad_id].color
+            except:
+                color = Colors.white
+
             SquadGangZone(
                 squad_gz.id,
                 squad_gz.squad_id,
+                color,
                 squad_gz.min_x,
                 squad_gz.min_y,
-                squad_gz.min_x,
+                squad_gz.max_x,
                 squad_gz.max_y,
                 squad_gz.capture_cooldown,
             )
@@ -181,10 +192,10 @@ def every_second():
         if squad_gangzone.is_capture:
             if squad_gangzone.capture_time != 0:
                 squad_gangzone.capture_time -= 1
-                GangWar.update_capture_textdraw(gangzone)
+                squad_gangzone.update_capture_textdraw()
 
             else:
-                GangWar.end_capture(gangzone, Player._registry)
+                squad_gangzone.end_war()
 
     if ServerInfo.current_time.hour != datetime.now(tz=ZoneInfo("Europe/Moscow")).hour:
         ServerInfo.current_time = datetime.now(tz=ZoneInfo("Europe/Moscow"))

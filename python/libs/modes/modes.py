@@ -14,6 +14,7 @@ from ..house.house import interiors
 from ..static import gangzones
 from ..static.textdraws import capture_td
 from ..utils.consts import TIMER_ID_NONE
+from ..squad.squad import Squad, squad_gangzone_pool
 from ..utils.data import Colors, ServerMode, convert_seconds, get_center
 
 
@@ -191,6 +192,8 @@ class Jail:
         GangWar.disable_gangzones_for_player(player)
         GangWar.hide_capture_textdraws(player)
         DeathMatch.hide_gangzones_for_player(player)
+        Squad.hide_capture_textdraws(player)
+        Squad.disable_gangzones_for_player(player)
         player.set_pos(5509.365234, 1245.812866, 8.000000)
         cls.set_spawn_info_for_player(player)
         player.reset_weapons()
@@ -287,6 +290,8 @@ class DeathMatch:
         player.reset_weapons()
         GangWar.disable_gangzones_for_player(player)
         GangWar.hide_capture_textdraws(player)
+        Squad.hide_capture_textdraws(player)
+        Squad.disable_gangzones_for_player(player)
         cls.show_gangzones_for_player(player)
         cls.give_guns_for_player(player)
         player.set_pos(
@@ -353,6 +358,18 @@ class Freeroam:
         GangWar.hide_capture_textdraws(player)
         DeathMatch.hide_gangzones_for_player(player)
         DeathMatch.disable_timer_for_player(player)
+        if player.squad:
+            Squad.show_squad_gangzones_for_player(player)
+            if player.squad.is_capturing:
+                player.set_color_ex(player.squad.color)
+                gz = squad_gangzone_pool[player.squad.capture_id]
+                x, y = get_center(gz.min_x, gz.max_x, gz.min_y, gz.max_y)
+                gang_zone_flash_for_player(player.id, player.squad.capture_id, gangs[gz.gang_atk_id].color)
+                Squad.show_capture_textdraws_for_player(player)
+                Squad.give_guns_for_player(player)
+                cls.set_spawn_info_for_player(player)
+                return
+
         if player.settings.spawn_in_house and player.house:
             # Если стоит спавн в доме и есть дом
             player.checks.in_house = True
@@ -370,7 +387,6 @@ class Freeroam:
             player.set_interior(0)
 
         cls.give_guns_for_player(player)
-        player.game_text(f"Welcome~n~{player.get_name()}", 2000, 1)
         cls.set_spawn_info_for_player(player)
 
 
@@ -394,6 +410,8 @@ class GangWar:
         player.remove_unused_vehicle(ServerMode.freeroam_world)
         DeathMatch.hide_gangzones_for_player(player)
         DeathMatch.disable_timer_for_player(player)
+        Squad.hide_capture_textdraws(player)
+        Squad.disable_gangzones_for_player(player)
         player.set_pos(player.gang.spawn_pos[0], player.gang.spawn_pos[1], player.gang.spawn_pos[2])
         player.set_camera_behind()
         player.set_interior(player.gang.interior_id)
@@ -408,7 +426,6 @@ class GangWar:
             gang_zone_flash_for_player(player.id, player.gang.capture_id, gangs[gz.gang_atk_id].color)
             cls.show_capture_textdraws_for_player(player)
 
-        player.game_text(f"Welcome~n~{player.gang.game_text_color}{player.get_name()}", 2000, 1)
         cls.set_spawn_info_for_player(player)
 
     @staticmethod

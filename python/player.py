@@ -29,7 +29,7 @@ from .libs.house.house import (House, houses_by_owner, houses_by_pickup,
                                interiors)
 from .libs.misc.playerdata import *
 from .libs.modes.modes import DeathMatch, Freeroam, GangWar, Jail
-from .libs.squad.squad import (Squad, squad_gangzone_pool, squad_pool,
+from .libs.squad.squad import (Squad, squad_gangzone_pool, squad_pool, squad_capture_dict,
                                squad_pool_id, squad_permissions_converter)
 from .libs.static import playertextdraws, textdraws
 from .libs.utils.consts import *
@@ -688,6 +688,20 @@ def on_player_death(player: Player, killer: Player, reason: int) -> None:
             killer.send_death_message(killer, player, reason)
             player.send_death_message(killer, player, reason)
 
+    if killer.squad and killer.squad.is_capturing:
+        if killer.squad.capture_id == player.squad.capture_id:
+            gz = squad_gangzone_pool[killer.squad.capture_id]
+            if killer.squad.uid == gz.gang_atk_id:
+                gz.gang_atk_score += 1
+            else:
+                gz.gang_def_score += 1
+
+            killer.send_death_message(killer, player, reason)
+            player.send_death_message(killer, player, reason)
+            need_restore = 100 - killer.get_health()
+            if need_restore != 0.0:
+                killer.set_health(killer.get_health() + need_restore)
+
 @Player.on_text
 @Player.using_registry
 def on_player_text(player: Player, text: str) -> False:
@@ -703,13 +717,16 @@ def on_player_text(player: Player, text: str) -> False:
 
     if player.checks.muted:
         player.set_chat_bubble("Пытается что-то сказать.", Colors.red, 20.0, 10000)
-        return player.send_error_message("Доступ в чат заблокирован!")
+        player.send_error_message("Доступ в чат заблокирован!")
+        return False
 
     if player.mode == ServerMode.freeroam_world or player.mode in ServerMode.deathmatch_worlds:
-        return send_client_message_to_all(player.color, f"{player.get_name()}[{player.id}]:{{{Colors.white_hex}}} {text}")
+        send_client_message_to_all(player.color, f"{player.get_name()}[{player.id}]:{{{'FFFFFF'}}} {text}")
+        return False
 
     if player.mode == ServerMode.gangwar_world and player.settings.disabled_global_chat_gw:
-        return send_client_message_to_all(player.color, f"{player.get_name()}[{player.id}]:{{{Colors.white_hex}}} {text}")
+        send_client_message_to_all(player.color, f"{player.get_name()}[{player.id}]:{{{'FFFFFF'}}} {text}")
+        return False
 
     player.set_chat_bubble(text, -1, 20.0, 10000)
     player.prox_detector(20.0, player.color, text)
@@ -2579,7 +2596,7 @@ class Dialogs:
         if not response:
             return
 
-        if len(input_text) < 6 or len(input_text) > 32:
+        if len(input_text) < 3 or len(input_text) > 32:
             player.send_error_message("Название должно быть от 6 и до 32 символов!")
             return cls.show_squad_create_dialog(player)
 
@@ -2674,6 +2691,7 @@ class Dialogs:
             player.cache["CREATE_SQUAD_DATA"][4]["color_hex"]
         )
         player.squad = squad
+        Squad.show_squad_gangzones_for_player(player)
         player.send_notification_message(
             f"Вы успешно создали фракцию: {{{squad.color_hex}}}{player.squad.name}{{{Colors.white_hex}}}!"
         )
@@ -2746,12 +2764,12 @@ class Dialogs:
 
             return cls.show_squad_rank_settings_dialog(player)
 
-        if list_item == 4:
-            if not player.squad.has_permissions(player, "all", "manage"):
+        if list_item == 5:
+            if not player.squad.has_permissions(player, "all", "manage", "invite", "univite"):
                 player.send_error_message("Вы не лидер фракции / не можете управлять фракцией!")
                 return cls.show_squad_info_dialog(player)
 
-            return ...
+            return cls.show_squad_members_settings_dialog(player)
 
     @classmethod
     def show_squad_settings_dialog(cls, player: Player) -> None:
@@ -2764,8 +2782,6 @@ class Dialogs:
                 "2. Изменить тег фракции\n"
                 "3. Изменить тип фракции\n"
                 "4. Изменить цвет фракции\n"
-                "5. Пригласить участника\n"
-                "6. Выгнать участника\n"
             ),
             "Ок",
             "Закрыть",
@@ -2792,7 +2808,6 @@ class Dialogs:
 
         if list_item == 3:
             return cls.show_squad_change_color_dialog(player)
-
 
     @classmethod
     def show_squad_change_name_dialog(cls, player: Player) -> None:
@@ -2917,7 +2932,8 @@ class Dialogs:
             (
                 "1. Создать ранг\n"
                 "2. Удалить ранг\n"
-                "3. Список рангов"
+                "3. Переименовать ранг\n"
+                "4. Список рангов"
             ),
             "Ок",
             "Назад",
@@ -2937,6 +2953,9 @@ class Dialogs:
             return cls.show_squad_rank_list_dialog(player, "delete")
 
         if list_item == 2:
+            return cls.show_squad_rank_list_dialog(player, "rename")
+
+        if list_item == 3:
             return cls.show_squad_rank_list_dialog(player, "show")
 
     @classmethod
@@ -2955,10 +2974,15 @@ class Dialogs:
     def squad_create_rank_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
         player = Player.from_registry_native(player)
         if not response:
-            return cls.show_squad_info_dialog(player)
+            return cls.show_squad_rank_settings_dialog(player)
 
         if len(input_text) == 0 or len(input_text) > 32:
             player.send_error_message("Длина названия должна быть до 32 символов!")
+            return cls.show_squad_create_rank_dialog(player)
+
+        if DataBase.load_squad_rank_by_name(player.squad.uid, input_text):
+            player.send_error_message("Ранг с таким названием уже существует!")
+            return cls.show_squad_create_rank_dialog(player)
 
         player.cache["CREATE_SQUAD_RANK"] = []
         player.cache["CREATE_SQUAD_RANK"].append({"NAME": input_text})
@@ -2999,7 +3023,7 @@ class Dialogs:
         player = Player.from_registry_native(player)
         if not response:
             del player.cache["CREATE_SQUAD_RANK"]
-            return cls.show_squad_info_dialog(player)
+            return cls.show_squad_rank_settings_dialog(player)
 
         if input_text == "Завершить":
             if not player.cache["CREATE_SQUAD_RANK"][1]["PERMISSIONS"]:
@@ -3017,7 +3041,6 @@ class Dialogs:
             return
 
         if input_text in player.cache["CREATE_SQUAD_RANK"][1]["PERMISSIONS"]:
-            del player.cache["CREATE_SQUAD_RANK"][1]["PERMISSIONS"][input_text]
             return cls.show_squad_create_rank_perms_dialog(player)
 
         player.cache["CREATE_SQUAD_RANK"][1]["PERMISSIONS"].append(input_text)
@@ -3025,9 +3048,10 @@ class Dialogs:
         return cls.show_squad_create_rank_perms_dialog(player)
 
     @classmethod
-    def show_squad_rank_list_dialog(cls, player: Player, action: Literal["delete", "show"]) -> None:
+    def show_squad_rank_list_dialog(cls, player: Player, action: Literal["delete", "show", "rename"]) -> None:
         player = Player.from_registry_native(player)
-        player.cache["SQUAD_RANK_LIST_DIALOG"] = action
+        player.cache["SQUAD_RANK_LIST_DIALOG"] = []
+        player.cache["SQUAD_RANK_LIST_DIALOG"].append(action)
         ranks_str = ""
         for rank in player.squad.ranks.keys():
             ranks_str += f"{rank}\n"
@@ -3046,32 +3070,282 @@ class Dialogs:
         player = Player.from_registry_native(player)
         if not response:
             del player.cache["SQUAD_RANK_LIST_DIALOG"]
-            return cls.show_squad_info_dialog(player)
+            return cls.show_squad_rank_settings_dialog(player)
 
-        if player.cache["SQUAD_RANK_LIST_DIALOG"] == "delete":
-            ...
+        if player.cache["SQUAD_RANK_LIST_DIALOG"][0] == "delete":
+            if len(player.squad.ranks) == 1:
+                player.send_error_message("Вы не можете удалить единственный ранг!")
+                return cls.show_squad_rank_settings_dialog(player)
 
-        if player.cache["SQUAD_RANK_LIST_DIALOG"] == "show":
-            del player.cache["SQUAD_RANK_LIST_DIALOG"]
+            if "all" in player.squad.ranks[input_text]:
+                player.send_error_message("Вы не можете удалить ранг лидера!")
+                return cls.show_squad_rank_settings_dialog(player)
+
+            player.squad.delete_rank(input_text)
+            player.send_notification_message(
+                f"Вы удалили ранг {{{player.squad.color_hex}}}{input_text}{{{Colors.white_hex}}}."
+            )
+            return cls.show_squad_rank_settings_dialog(player)
+
+        if player.cache["SQUAD_RANK_LIST_DIALOG"][0] == "show":
             perms = ""
-            for rank, permission in player.squad.ranks.items():
+            for rank, permissions in player.squad.ranks.items():
                 if input_text != rank:
                     continue
 
-                perms += f"{squad_permissions_converter[permission]}\n"
+                for i in permissions:
+                    perms += f"{squad_permissions_converter[i]}\n"
 
             return Dialog.create(
                 2,
-                f"Ранг {rank}",
+                f"Разрешения ранга {{{player.squad.color_hex}}}{rank}",
                 perms,
                 "Закрыть",
                 ""
+            ).show(player)
+
+        if player.cache["SQUAD_RANK_LIST_DIALOG"][0] == "rename":
+            player.cache["SQUAD_RANK_LIST_DIALOG"].append(input_text)
+            return Dialog.create(
+                1,
+                "Переименовать ранг",
+                "Введите новое название ранга:",
+                "Ок",
+                "Назад",
+                on_response=cls.squad_rename_rank_response
+            ).show(player)
+
+    @classmethod
+    def squad_rename_rank_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            del player.cache["SQUAD_RANK_LIST_DIALOG"]
+            return cls.show_squad_rank_settings_dialog(player)
+
+        if len(input_text) == 0 or len(input_text) > 32:
+            del player.cache["SQUAD_RANK_LIST_DIALOG"]
+            player.send_error_message("Длина названия должна быть до 32 символов!")
+            return cls.show_squad_rank_list_dialog(player, "rename")
+
+        if DataBase.load_squad_rank_by_name(player.squad.uid, input_text):
+            del player.cache["SQUAD_RANK_LIST_DIALOG"]
+            player.send_error_message("Ранг с таким названием уже существует!")
+            return cls.show_squad_rank_list_dialog(player, "rename")
+
+        player.squad.update_rank(player.cache["SQUAD_RANK_LIST_DIALOG"][1], rank=input_text)
+        hex_ = player.squad.color_hex
+        old_ = player.cache["SQUAD_RANK_LIST_DIALOG"][1]
+        player.send_notification_message(
+            f"Вы переименовали ранг {{{hex_}}}{old_}{{{Colors.white_hex}}} в {{{hex_}}}{input_text}{{{Colors.white_hex}}}."
+        )
+        return cls.show_squad_rank_settings_dialog(player)
+
+    @classmethod
+    def show_squad_members_settings_dialog(cls, player: Player) -> None:
+        player = Player.from_registry_native(player)
+        return Dialog.create(
+            2, "Управление участниками",
+            (
+                "1. Пригласить участника\n"
+                "2. Выгнать участника\n"
+                "3. Изменить ранг участнику"
+            ),
+            "Ок",
+            "Назад",
+            on_response=cls.squad_members_settings_response
+        ).show(player)
+
+    @classmethod
+    def squad_members_settings_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            return cls.show_squad_settings_dialog(player)
+
+        if list_item == 0:
+            return cls.show_squad_invite_member_dialog(player)
+
+        if list_item == 1:
+            return cls.show_squad_members_list_dialog(player, "uninvite")
+
+        if list_item == 2:
+            return cls.show_squad_members_list_dialog(player, "change")
+
+    @classmethod
+    def show_squad_members_list_dialog(cls, player: Player, action: Literal["uninvite", "change"]) -> None:
+        player = Player.from_registry_native(player)
+        player.cache["SQUAD_MEMBERS_LIST_DIALOG"] = []
+        player.cache["SQUAD_MEMBERS_LIST_DIALOG"].append(action)
+        members_str = ""
+        for member in player.squad.members.keys():
+            members_str += f"{member}\n"
+
+        return Dialog.create(
+            2,
+            "Список участников",
+            members_str,
+            "Выбрать",
+            "Назад",
+            on_response=cls.squad_members_list_response
+        ).show(player)
+
+    @classmethod
+    def squad_members_list_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            del player.cache["SQUAD_MEMBERS_LIST_DIALOG"]
+            return cls.show_squad_members_settings_dialog(player)
+
+        if player.cache["SQUAD_MEMBERS_LIST_DIALOG"][0] == "uninvite":
+            if input_text == player.name:
+                player.send_error_message("Вы не можете выгнать себя из фракции!")
+                return cls.show_squad_members_list_dialog(player, 'uninvite')
+
+            player.squad.kick_member(input_text)
+            player.send_notification_message(f"Вы выгнали {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}} из фракции.")
+
+        if player.cache["SQUAD_MEMBERS_LIST_DIALOG"][0] == "change":
+            player.cache["SQUAD_MEMBERS_LIST_DIALOG"][1] = input_text
+            return cls.show_squad_member_change_dialog(
+                player,
+                player.cache["SQUAD_MEMBERS_LIST_DIALOG"][1]
             )
 
+    @classmethod
+    def show_squad_member_change_dialog(cls, player: Player, member: str) -> None:
+        player = Player.from_registry_native(player)
+        ranks_str = ""
+        for rank in player.squad.ranks.keys():
+            ranks_str += "{rank}\n"
+
+        return Dialog.create(
+            2, f"Изменить ранг участнику {member}",
+            ranks_str,
+            "Ок",
+            "Назад",
+            on_response=cls.squad_member_change_response
+        ).show(player)
+
+    @classmethod
+    def squad_member_change_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            del player.cache["SQUAD_MEMBERS_LIST_DIALOG"]
+            return cls.show_squad_members_settings_dialog(player)
+
+        member: str = player.cache["SQUAD_MEMBERS_LIST_DIALOG"][1]
+        player.squad.update_member_rank(member, input_text)
+        player.send_notification_message(
+            f"Вы изменили ранг участника {{{Colors.cmd_hex}}}{member}{{{Colors.white_hex}}} на {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}."
+        )
+        del player.cache["SQUAD_MEMBERS_LIST_DIALOG"]
+        return cls.show_squad_members_settings_dialog(player)
+
+    @classmethod
+    def show_squad_invite_member_dialog(cls, player: Player) -> None:
+        player = Player.from_registry_native(player)
+        return Dialog.create(
+            1, "Пригласить участника",
+            "Введите ID:",
+            "Ок",
+            "Закрыть",
+            on_response=cls.squad_member_invite_response
+        ).show(player)
+
+    @classmethod
+    def squad_member_invite_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            return
+
+        try:
+            target_id = int(input_text)
+        except:
+            player.send_error_message("Укажите ID игрока!")
+            return cls.show_squad_invite_member_dialog(player)
+
+        target = Player.from_registry_native(target_id)
+        if not target.is_connected():
+            player.send_error_message("Такого игрока нет на сервере!")
+            return cls.show_squad_invite_member_dialog(player)
+
+        if target.squad:
+            player.send_error_message("Игрок уже состоит во фракции!")
+            return cls.show_squad_invite_member_dialog(player)
+
+        player.cache["SQUAD_PLAYER_INVITE"] = []
+        player.cache["SQUAD_PLAYER_INVITE"][0] = target
+        return cls.show_squad_invite_ranks_dialog(player)
+
+    @classmethod
+    def show_squad_invite_ranks_dialog(cls, player: Player) -> None:
+        player = Player.from_registry_native(player)
+        ranks_str = ""
+        for rank in player.squad.ranks.keys():
+            ranks_str += f"{rank}\n"
+
+        return Dialog.create(
+            2,
+            "Выберите ранг",
+            ranks_str,
+            "Выбрать",
+            "Назад",
+            on_response=cls.squad_member_invite_rank_response
+        ).show(player)
+
+    @classmethod
+    def squad_member_invite_rank_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            del player.cache["SQUAD_PLAYER_INVITE"]
+            return cls.show_squad_invite_member_dialog(player)
+
+        if player.squad.ranks[input_text] == "all":
+            player.send_error_message("Вы не можете назначить игроку ранг лидера!")
+            del player.cache["SQUAD_PLAYER_INVITE"]
+            return cls.show_squad_invite_member_dialog(player)
 
 
+        player.cache["SQUAD_PLAYER_INVITE"][1] = input_text
+        player.send_notification_message("Предложение отправлено!")
+        cls.show_squad_invite_ask_dialog(
+            player.cache["SQUAD_PLAYER_INVITE"][0],
+            player,
+            player.cache["SQUAD_PLAYER_INVITE"][1]
+        )
+        del player.cache["SQUAD_PLAYER_INVITE"]
+        return
 
+    @classmethod
+    def show_squad_invite_ask_dialog(cls, player: Player, sent_by: Player, rank: str) -> None:
+        player = Player.from_registry_native(player)
+        player.cache["SQUAD_INVITE_SENT_BY"] = []
+        player.cache["SQUAD_INVITE_SENT_BY"][0] = sent_by
+        player.cache["SQUAD_INVITE_SENT_BY"][1] = rank
+        c_ = sent_by.squad.color_hex
+        return Dialog.create(
+            0, f"Приглашение от {sent_by.name}",
+            f"Игрок {sent_by.name} приглашает Вас во фракцию {{{c_}}}{sent_by.squad.name}{{{Colors.dialog_hex}}} на ранг {{{c_}}}{rank}{{{Colors.dialog_hex}}}.",
+            "Принять",
+            "Отмена",
+            on_response=cls.squad_squad_invite_ask_response
+        ).show(player)
 
+    @classmethod
+    def squad_squad_invite_ask_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            player.cache["SQUAD_INVITE_SENT_BY"][0].send_notification_message(
+                f"Игрок {{{Colors.cmd_hex}}}{player.name}{{{Colors.white_hex}}} отказался вступать во фракцию."
+            )
+            del player.cache["SQUAD_INVITE_SENT_BY"]
+            return
+
+        owner: Player = player.cache["SQUAD_INVITE_SENT_BY"][0]
+        rank: str = player.cache["SQUAD_INVITE_SENT_BY"][1]
+        owner.squad.create_member(player.name, rank)
+        player.squad = owner.squad
+        player.send_notification_message(f"Вы вступили во фракцию {{{player.squad.color_hex}}}{player.squad.name}{{{Colors.white_hex}}}.")
+        del player.cache["SQUAD_INVITE_SENT_BY"]
 
     @classmethod
     def show_squad_gangzones_dialog(cls, player: Player) -> None:
@@ -3097,6 +3371,30 @@ class Dialogs:
             "",
         ).show(player)
 
+    @classmethod
+    def show_squad_start_capture_dialog(cls, player: Player, squad_atk: "Squad", squad_def: "Squad", gangzone_id: int):
+        player = Player.from_registry_native(player)
+        zone_id = player.get_pos_zone_name()
+        squad_capture_dict[player.name] = (player.name, squad_atk, squad_def, gangzone_id, ZoneNames.names[zone_id])
+        return Dialog.create(
+            0,
+            "Захват территории",
+            f"Владелец:\t{{{squad_def.color_hex}}}{squad_def.name}\n{{{Colors.dialog_hex}}}Территория:\t{{{Colors.cmd_hex}}}{ZoneNames.names[zone_id]}",
+            "Ок",
+            "Закрыть",
+            on_response=cls.start_squad_capture_response
+        ).show(player)
 
+    @classmethod
+    def start_squad_capture_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            del squad_capture_dict[player.name]
+            return player.send_notification_message("Вы отменили захват территории.")
 
-
+        squad_atk: Squad = squad_capture_dict[player.name][1]
+        squad_def: Squad = squad_capture_dict[player.name][2]
+        capture_id: int = squad_capture_dict[player.name][3]
+        gangzone_class = squad_gangzone_pool[capture_id]
+        gangzone_class.start_war(player, squad_atk, squad_def)
+        return GangWar.start_capture(player, player._registry)

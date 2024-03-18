@@ -143,47 +143,37 @@ default_gang_zones = [
     (2794.710449,-962.567871,2922.710449,-861.567871)
 ]
 
+
 default_squad_zones = [
-    (79.800048828125, 1303.5, 357.800048828125, 1514.5),
-    (-134.199951171875, 1623.7999877929688, 471.800048828125, 2162.7999877929688),
-    (-973, 1913.7999877929688, -439, 2165.7999877929688),
-    (-1647, 2485.7999992370605, -1356, 2736.7999992370605),
-    (-2725, 2184.800003051758, -2166, 2550.800003051758),
-    (-103.199951171875, 2380.7999992370605, 486.800048828125, 2664.7999992370605),
-    (374.7333984375, 707.7665710449219, 841.7333984375, 1038.7665710449219),
-    (-2534.800001144409, 1496.4332580566406, -2289.800001144409, 1596.4332580566406),
-    (-1493.333251953125, 1456.4332580566406, -1346.333251953125, 1526.4332580566406),
-    (-1137.8665771484375, -774.9001770019531, -961.8665771484375, -576.9001770019531),
-    (-636.8665771484375, -583.9001770019531, -456.8665771484375, -451.9001770019531),
-    (-1978.5332641601562, -1788.9004211425781, -1685.5332641601562, -1482.9004211425781),
-    (-1487.2666625976562, -1622.9004211425781, -1387.2666625976562, -1432.9004211425781),
-    (-1153.3999633789062, -1717.9003295898438, -960.3999633789062, -1599.9003295898438),
-    (-1250.3999633789062, -1374.2335205078125, -924.3999633789062, -883.2335205078125),
-    (-2573.000015258789, -727.2334899902344, -2473.000015258789, -574.2334899902344),
-    (-350.8125, -138.59375, 116.1875, 188.40625),
-    (680, 213, 839, 395),
-    (991, -465, 1159, -264),
-    (2213, -2779, 2816, -2291),
-    (2816, -2550, 2861, -2311),
-    (-1894, 1263, -1738, 1337),
-    (117, -1985, 191, -1742),
-    (1078, -2083, 1308, -1983),
-    (2771, 824, 2901, 1028),
-    (2230, 2713, 2476, 2832),
-    (-466, 1265, -165, 1654),
-    (-464, 2179, -336, 2279),
-    (-812, 2393, -763, 2443),
-    (-1665, -2799, -1496, -2675),
-    (-632, -1545, -532, -1445),
-    (-433, -1483, -333, -1383),
-    (-409, -1093, -309, -993),
-    (-986, -569, -886, -469),
-    (-632, -226, -392, -14),
-    (-1770.4063720703125, -206.98724365234375, -1458.4063720703125, 244.01275634765625),
-    (2399.393310546875, -1006.9872436523438, 2654.393310546875, -906.9872436523438),
-    (2310.393310546875, -696.9872436523438, 2410.393310546875, -596.9872436523438),
-    (1855.393310546875, 96.01275634765625, 2050.393310546875, 285.01275634765625),
-    (-2611.599998474121, -223, -2511.599998474121, -123),
+    (2816.37451171875, -2561.1746826171875, 2861.37451171875, -2323.1746826171875),
+    (2214.393310546875, -2730.180908203125, 2812.393310546875, -2272.180908203125),
+    (2145.193359375, -178.1749267578125, 2619.193359375, 215.8250732421875),
+    (1859.193359375, 106.81256103515625, 2046.193359375, 263.81256103515625),
+    (1506.193359375, -33.18743896484375, 1606.193359375, 66.81256103515625),
+    (996.593505859375, -463.18743896484375, 1142.593505859375, -274.18743896484375),
+    (-619.2064208984375, -213.18743896484375, -397.2064208984375, -15.18743896484375),
+    (-631.2064208984375, -571.1871948242188, -459.2064208984375, -460.18719482421875),
+    (-410.2064208984375, -1097.1871948242188, -310.2064208984375, -997.1871948242188),
+    (-1144.806396484375, -1731.1871948242188, -957.806396484375, -1607.1871948242188),
+    (-1956.8063473701477, -1797.9869995117188, -1715.8063473701477, -1498.9869995117188),
+    (-1484.8063473701477, -1622.9872436523438, -1384.8063473701477, -1429.9872436523438),
+    (-1210.8063473701477, -1275.9872436523438, -998.8063473701477, -1061.9872436523438),
+    (-986.8063473701477, -572.9872436523438, -886.8063473701477, -472.98724365234375),
+    (-2283.0125579833984, -1761.98095703125, -2205.0125579833984, -1696.98095703125),
+    (-1473.025131225586, 482.0377502441406, -1240.025131225586, 521.0377502441406),
+    (-2531.0562591552734, 1518.0501403808594, -2293.0562591552734, 1571.0501403808594),
+    (-1488.018783569336, 1460.0126342773438, -1355.018783569336, 1512.0126342773438),
+    (-1633.6188354492188, 2473.0187644958496, -1344.6188354492188, 2715.0187644958496),
+    (-471.61260986328125, 2186.018798828125, -312.61260986328125, 2294.018798828125),
+    (-958.6314086914062, 1955.0375671386719, -454.63140869140625, 2159.037567138672),
+    (-1878.6375427246094, 1260.0314331054688, -1740.6375427246094, 1332.0314331054688),
+    (394.39361572265625, 705.0314331054688, 799.3936157226562, 1027.0314331054688),
+    (-123.0252685546875, 1629.0375671386719, 442.9747314453125, 2153.037567138672),
+    (-97.01904296875, 2386.0250205993652, 450.98095703125, 2667.0250205993652),
+    (2776.393310546875, 826.0126342773438, 2896.393310546875, 1022.0126342773438),
+    (2233.3494873046875, 2701.0500450134277, 2464.3494873046875, 2830.0500450134277),
+    (662.193603515625, 223.01275634765625, 825.193603515625, 398.01275634765625),
+    (1848.79345703125, -1266.9872436523438, 2067.79345703125, -1128.9872436523438),
 ]
 
 
@@ -334,7 +324,6 @@ class SquadRank(Base):
     uid = Column(Integer, Identity(), primary_key=True)
     squad_id = Column(Integer)
     rank = Column(String(32), default="Лидер")
-    permissions = Column(String(32))
 
 
 class SquadRankPermissions(Base):
@@ -456,16 +445,16 @@ class DataBase():
             session.commit()
 
     @classmethod
-    def create_gangzone(cls, id: int, gang_id: int, color: int, min_x: float, min_y: float, max_x: float, max_y: float) -> None:
+    def create_gangzone(cls, id: int, gang_id: int, min_x: float, min_y: float, max_x: float, max_y: float) -> None:
         with cls.Session() as session:
-            session.add(GangZone(id=id, gang_id=gang_id, color=color, min_x=min_x, min_y=min_y, max_x=max_x, max_y=max_y))
+            session.add(GangZone(id=id, gang_id=gang_id, min_x=min_x, min_y=min_y, max_x=max_x, max_y=max_y))
             session.commit()
 
     @classmethod
     def create_gangzones(cls):
         if not cls.get_gangzone():
             for i, gz in enumerate(default_gang_zones):
-                cls.create_gangzone(i, -1, 0xFFFFFFFF, gz[0], gz[1], gz[2], gz[3]) # Colors.white
+                cls.create_gangzone(i, -1, gz[0], gz[1], gz[2], gz[3])
 
             print(f"Created: GangZones (database)")
 
@@ -649,6 +638,12 @@ class DataBase():
             return result.scalars().all()
 
     @classmethod
+    def load_gangzone(cls, gangzone_id: int) -> SquadGangZones:
+        with cls.Session() as session:
+            result = session.execute(select(SquadGangZones).where(SquadGangZones.id == gangzone_id))
+            return result.scalar()
+
+    @classmethod
     def get_squad_gangzone(cls) -> SquadGangZones:
         with cls.Session() as session:
             result = session.execute(select(SquadGangZones))
@@ -674,15 +669,12 @@ class DataBase():
     @classmethod
     def create_squad_gangzones(cls):
         if not cls.get_squad_gangzone():
-            for i, gz in enumerate(default_squad_zones):
-                cls.create_squad_gangzone(i, -1, gz[0], gz[1], gz[2], gz[3])
+            for gz in default_squad_zones:
+                i = Gangzone.create(gz[0], gz[1], gz[2], gz[3])
+                cls.create_squad_gangzone(i.id, -1, gz[0], gz[1], gz[2], gz[3])
 
-            print(f"Created: SquadGangZones (database)")
+            print(f"Created: SquadGangZones (database & server)")
 
-        for gz in default_squad_zones:
-            Gangzone.create(gz[0], gz[1], gz[2], gz[3])
-
-        print(f"Created: SquadGangZones (server)")
 
     @classmethod
     def create_squad(cls, name: str, tag: str, leader: str, classification: str, color: int, color_hex: str) -> Squad:
@@ -690,12 +682,10 @@ class DataBase():
             session.add(Squad(name=name, tag=tag, classification=classification, color=color, color_hex=color_hex))
             squad_ = session.execute(select(Squad).where(Squad.name == name)).scalar()
 
-            session.add(SquadMember(squad_id=squad_.uid, member=leader, rank="Лидер"))
             session.add(SquadRank(squad_id=squad_.uid))
-
+            session.add(SquadMember(squad_id=squad_.uid, member=leader, rank="Лидер"))
             rank_ = session.execute(select(SquadRank).where(SquadRank.squad_id == squad_.uid)).scalar()
             session.add(SquadRankPermissions(squad_id=squad_.uid, rank_id=rank_.uid, permissions="all"))
-
             session.commit()
             return squad_
 
@@ -777,12 +767,27 @@ class DataBase():
             session.commit()
 
     @classmethod
+    def delete_squad_rank(cls, squad_id: int, rank: str) -> None:
+        rank_db = DataBase.load_squad_rank_by_name(squad_id, rank)
+        with cls.Session() as session:
+            session.execute(delete(SquadRank).where(SquadRank.rank == rank))
+            session.execute(delete(SquadRankPermissions).where(SquadRankPermissions.rank_id == rank_db.uid))
+            session.commit()
+
+        members = DataBase.load_squad_members(squad_id)
+        DataBase.create_squad_rank(squad_id, "Нет", "none")
+        rank_none = DataBase.load_squad_rank_by_name(squad_id, "Нет")
+        for member in members:
+            if member.rank_id == rank_db.uid:
+                DataBase.save_squad_member(member.name, rank=rank_none.rank)
+
+    @classmethod
     def create_squad_rank(cls, squad_id: str, rank: str, permissions: list) -> None:
         with cls.Session() as session:
             session.add(SquadRank(squad_id=squad_id, rank=rank))
             rank_ = session.execute(select(SquadRank).where(and_(SquadRank.squad_id == squad_id, SquadRank.rank == rank))).scalar()
             for permission in permissions:
-                session.add(SquadRankPermissions(squad_id=squad_id, rank_id=rank_.uid, permission=permission))
+                session.add(SquadRankPermissions(squad_id=squad_id, rank_id=rank_.uid, permissions=permission))
 
             session.commit()
 
@@ -791,6 +796,12 @@ class DataBase():
         with cls.Session() as session:
             result = session.execute(select(SquadRank).where(SquadRank.squad_id == squad_id))
             return result.scalars().all()
+
+    @classmethod
+    def load_squad_rank_by_name(cls, squad_id: int, rank_name: str) -> SquadRank:
+        with cls.Session() as session:
+            result = session.execute(select(SquadRank).where(and_(SquadRank.squad_id == squad_id, SquadRank.rank == rank_name)))
+            return result.scalar()
 
     @classmethod
     def load_squad_permissions_for_rank(cls, squad_id: int, rank_id: int) -> list[str]:
@@ -811,13 +822,17 @@ class DataBase():
         return l
 
     @classmethod
-    def save_squad_rank(cls, squad_id: str, **kwargs: dict) -> None:
+    def save_squad_rank(cls, squad_id: int, rank_name: str, **kwargs: dict) -> None:
         with cls.Session() as session:
-            result = session.execute(select(SquadRank).where(SquadRank.squad_id == squad_id))
-            squad_db = result.scalar()
+            result = session.execute(select(SquadRank).where(and_(SquadRank.squad_id == squad_id, SquadRank.rank == rank_name)))
+            rank_db = result.scalar()
             for key, value in kwargs.items():
-                if hasattr(squad_db, key):
-                    setattr(squad_db, key, value)
+                if hasattr(rank_db, key):
+                    setattr(rank_db, key, value)
 
             session.commit()
 
+        members = DataBase.load_squad_members(squad_id)
+        for member in members:
+            if member.rank == rank_name:
+                DataBase.save_squad_member(member.name, rank=kwargs["rank"])

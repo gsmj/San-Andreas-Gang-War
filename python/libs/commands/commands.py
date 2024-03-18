@@ -1,6 +1,5 @@
 import random
 from datetime import datetime as dt
-from typing import Literal
 from zoneinfo import ZoneInfo
 
 from samp import (PLAYER_STATE_SPECTATING,  # type: ignore
@@ -15,7 +14,7 @@ from ...player import Dialogs, Player
 from ...vehicle import Vehicle
 from ..database.database import DataBase
 from ..gang.gang import gangs, gangzone_pool
-from ..house.house import houses
+from ..squad.squad import Squad, squad_pool_id, squad_gangzone_pool
 from ..utils.consts import NO_HOUSE_OWNER, TIMER_ID_NONE
 from ..utils.data import (Colors, MonthsConverter, ServerInfo, ServerMode,
                           VIPData, WeatherIDs, convert_seconds)
@@ -1890,9 +1889,6 @@ def buyhouse(player: Player):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
-    if not player.check_player_mode([ServerMode.gangwar_world]):
-        return
-
     if not player.checks.in_house:
         return player.send_error_message("Вы не находитесь в доме!")
 
@@ -2041,3 +2037,61 @@ def createsquad(player: Player):
         return player.send_error_message("У Вас уже есть фракция!")
 
     return Dialogs.show_squad_create_dialog(player)
+
+
+@cmd_ex(
+    cmd,
+    description="Начать войну за территорию",
+    mode=CommandType.freeroam_type
+)
+@Player.using_registry
+def startwar(player: Player):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.check_player_mode([ServerMode.freeroam_world]):
+        return
+
+    if not player.squad:
+        return player.send_error_message("У Вас нет фракции!")
+
+    if not player.squad.has_permissions(player, "all", "startwar"):
+        return player.send_error_message("Вы не можете начинать войну!")
+
+    for gz_id, gangzone in squad_gangzone_pool.items():
+        if player.is_in_area(gangzone.min_x, gangzone.min_y, gangzone.max_x, gangzone.max_y):
+            break
+
+    gangzone = squad_gangzone_pool[gz_id]
+    if player.squad.uid == gangzone.squad_id:
+        return player.send_error_message("Вы не можете атаковать свою территорию!")
+
+    if gangzone.capture_cooldown != 0:
+        hours, minutes, seconds = convert_seconds(gangzone.capture_cooldown)
+        return player.send_error_message(f"Захватить территорию можно будет только через {{{Colors.cmd_hex}}}{hours}{{{Colors.red_hex}}} часов, {{{Colors.cmd_hex}}}{minutes}{{{Colors.red_hex}}} минут, {{{Colors.cmd_hex}}}{seconds}{{{Colors.red_hex}}} секунд!")
+
+    total_captures = 0
+    for i in gangzone_pool.values():
+        if i.is_capture:
+            total_captures += 1
+
+    if total_captures == ServerInfo.SQUAD_CAPTURE_LIMIT:
+        return player.send_error_message("В данный момент на сервере достигнут лимит захвата!")
+
+    if gangzone.squad_id == -1:
+        player.send_notification_message("Территория была автоматически захвачена.")
+        gangzone.update(squad_id=player.squad.uid, color=player.squad.color)
+        for player in Player._registry.values():
+            if player.mode != ServerMode.freeroam_world:
+                continue
+
+            if not player.squad:
+                continue
+
+            return Squad.reload_gangzones_for_player(player)
+
+    if player.squad.is_capturing or squad_pool_id[gangzone.squad_id].is_capturing:
+        return player.send_error_message("Одна из банд уже ведёт захват территории!")
+
+    return Dialogs.show_squad_start_capture_dialog(player, player.squad, squad_pool_id[gangzone.squad_id], gangzone.id)

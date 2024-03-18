@@ -18,6 +18,7 @@ class ServerInfo:
     language: str = "Russian"
     map: str = "San Andreas"
     CAPTURE_LIMIT: int = 2
+    SQUAD_CAPTURE_LIMIT: int = 2
     current_time = None
     time = None
     change_name_and_adverb: int = 7200
@@ -26,6 +27,7 @@ class ServerInfo:
 
 @dataclass
 class Colors:
+    notification: int = 0x59C7C2AA
     dark_orange: int = 0xFF6600FF
     light_grey: int = 0xB4B5B7FF
     blue: int = 0x319AFFFF
@@ -36,7 +38,8 @@ class Colors:
     aztecas: int = 0x00b4e1AA
     vagos: int = 0xffcd00AA
     rifa: int = 0x6666ffAA
-    white: int = 0xFFFFFFFF
+    # white: int = 0xFFFFFFFF
+    white: int = 0x59C7C2AA
     mask: int = 0x22222200
     textdraw: int = 0xFFFF00AA
     sms: int = 0xEDFF21FF
@@ -49,7 +52,7 @@ class Colors:
     dark_green: int = 0x34C924AA
     ad: int = 0xF44336AA
     deathmatch: int = 0x434B4DAA
-    cmd: int = 0xD53032AA
+    cmd: int = 0xD27677AA
     game_text_groove: str = "~g~"
     game_text_ballas: str = "~p~"
     game_text_vagos: str = "~h~~h~"
@@ -62,13 +65,14 @@ class Colors:
     vagos_hex: str = "FFA500"
     aztecas_hex: str = "00bfff"
     rifa_hex: str = "1560BD"
-    white_hex: str = "FFFFFF"
+    # white_hex: str = "FFFFFF"
+    white_hex: str = "59C7C2"
     red_hex: str = "ff6347"
     # cmd_hex: str = "FFCD00"
-    cmd_hex: str = "D53032"
+    cmd_hex: str = "D27677"
     vip_hex: str = "EDFF21"
     dialog_hex: str = "A9C4E4"
-    green_hex: str = "008000"
+    green_hex: str = "85EA8E"
     bronze_hex: str = "cd7f32"
     silver_hex: str = "808080"
     gold_hex: str = "FFD700"
