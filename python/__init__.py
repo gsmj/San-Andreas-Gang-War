@@ -195,7 +195,7 @@ def every_second():
                 squad_gangzone.update_capture_textdraw()
 
             else:
-                squad_gangzone.end_war()
+                squad_gangzone.end_war(Player._registry)
 
     if ServerInfo.current_time.hour != datetime.now(tz=ZoneInfo("Europe/Moscow")).hour:
         ServerInfo.current_time = datetime.now(tz=ZoneInfo("Europe/Moscow"))

@@ -322,7 +322,7 @@ class Squad:
             if not player.squad:
                 continue
 
-            if not player.squad.uid == s_atk.uid or not player.squad.uid.uid == s_def.uid:
+            if not player.squad.uid == s_atk.uid or not player.squad.uid == s_def.uid:
                 continue
 
             player.send_notification_message(
