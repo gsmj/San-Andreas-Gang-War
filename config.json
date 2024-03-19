@@ -14,8 +14,8 @@
         "gravity": 0.008,
         "group_player_objects": false,
         "lag_compensation_mode": 1,
-        "map": "Loading..",
-        "mode": "Loading..",
+        "map": "San Andreas",
+        "mode": "Gangwar/Freeroam/DM/Drift",
         "nametag_draw_radius": 20.0,
         "player_marker_draw_radius": 14.0,
         "player_marker_mode": 1,
@@ -35,7 +35,7 @@
         "vehicle_respawn_time": 10000,
         "weather": 10
     },
-    "language": "Loading..",
+    "language": "Russian",
     "logging": {
         "enable": true,
         "log_chat": false,
@@ -50,7 +50,7 @@
     },
     "max_bots": 0,
     "max_players": 1000,
-    "name": "Loading..",
+    "name": "San Andreas Gang War | 1 | Reborn",
     "network": {
         "acks_limit": 3000,
         "aiming_sync_rate": 30,

@@ -1820,7 +1820,7 @@ def flip(player: Player):
     if not player.is_in_any_vehicle():
         return player.send_error_message("Вы должны находиться в транспорте!")
 
-    veh = Vehicle.from_registry_native(player.vehicle.id)
+    veh = Vehicle.from_registry_native(player.vehicle)
     x, y, z = veh.get_position()
     angle = veh.get_z_angle()
     veh.set_position(x, y, z+1.5)
@@ -2082,14 +2082,14 @@ def startwar(player: Player):
     if gangzone.squad_id == -1:
         player.send_notification_message("Территория была автоматически захвачена.")
         gangzone.update(squad_id=player.squad.uid, color=player.squad.color)
-        for player in Player._registry.values():
-            if player.mode != ServerMode.freeroam_world:
+        for p in Player._registry.values():
+            if p.mode != ServerMode.freeroam_world:
                 continue
 
-            if not player.squad:
+            if not p.squad:
                 continue
 
-            return Squad.reload_gangzones_for_player(player)
+            return Squad.reload_gangzones_for_player(p)
 
     if player.squad.is_capturing or squad_pool_id[gangzone.squad_id].is_capturing:
         return player.send_error_message("Одна из банд уже ведёт захват территории!")

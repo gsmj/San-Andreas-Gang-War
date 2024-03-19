@@ -696,8 +696,6 @@ def on_player_death(player: Player, killer: Player, reason: int) -> None:
             else:
                 gz.gang_def_score += 1
 
-            killer.send_death_message(killer, player, reason)
-            player.send_death_message(killer, player, reason)
             need_restore = 100 - killer.get_health()
             if need_restore != 0.0:
                 killer.set_health(killer.get_health() + need_restore)
@@ -721,7 +719,9 @@ def on_player_text(player: Player, text: str) -> False:
         return False
 
     if player.mode == ServerMode.freeroam_world or player.mode in ServerMode.deathmatch_worlds:
-        send_client_message_to_all(player.color, f"{player.get_name()}[{player.id}]:{{{'FFFFFF'}}} {text}")
+        send_client_message_to_all(
+            player.color, f"[{player.squad.tag if player.squad.tag else ''}] | {player.get_name()}[{player.id}]:{{{'FFFFFF'}}} {text}"
+        )
         return False
 
     if player.mode == ServerMode.gangwar_world and player.settings.disabled_global_chat_gw:
@@ -2781,7 +2781,6 @@ class Dialogs:
                 "1. Переименовать фракцию\n"
                 "2. Изменить тег фракции\n"
                 "3. Изменить тип фракции\n"
-                "4. Изменить цвет фракции\n"
             ),
             "Ок",
             "Закрыть",
@@ -2806,8 +2805,8 @@ class Dialogs:
         if list_item == 2:
             return cls.show_squad_change_type_dialog(player)
 
-        if list_item == 3:
-            return cls.show_squad_change_color_dialog(player)
+        # if list_item == 3:
+        #     return cls.show_squad_change_color_dialog(player)
 
     @classmethod
     def show_squad_change_name_dialog(cls, player: Player) -> None:
@@ -2896,31 +2895,6 @@ class Dialogs:
 
         player.squad.update(classification=input_text)
         player.send_notification_message(f"Вы изменили тип фракции на {{{player.squad.color_hex}}}{input_text.lower()}{{{Colors.white_hex}}}.")
-        return cls.show_squad_info_dialog(player)
-
-    @classmethod
-    def show_squad_change_color_dialog(cls, player: Player) -> None:
-        player = Player.from_registry_native(player)
-        color_str = ""
-        for key, value in Colors.clist_hex.items():
-            color_str += f"{{{value}}}{player.name}\n"
-
-        return Dialog.create(
-            2, "Изменить цвет фракции",
-            color_str,
-            "Ок",
-            "Назад",
-            on_response=cls.squad_change_color_response
-        ).show(player)
-
-    @classmethod
-    def squad_change_color_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
-        player = Player.from_registry_native(player)
-        if not response:
-            return cls.show_squad_info_dialog(player)
-
-        player.squad.update(color=Colors.clist_rgba[list_item], color_hex=Colors.clist_hex[list_item])
-        player.send_notification_message(f"Вы изменили {{{player.squad.color_hex}}}цвет{{{Colors.white_hex}}} фракции.")
         return cls.show_squad_info_dialog(player)
 
     @classmethod
@@ -3396,5 +3370,4 @@ class Dialogs:
         squad_def: Squad = squad_capture_dict[player.name][2]
         capture_id: int = squad_capture_dict[player.name][3]
         gangzone_class = squad_gangzone_pool[capture_id]
-        gangzone_class.start_war(player, squad_atk, squad_def)
-        return GangWar.start_capture(player, player._registry)
+        return gangzone_class.start_war(player, squad_atk, squad_def, Player._registry)

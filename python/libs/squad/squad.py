@@ -89,33 +89,29 @@ class SquadGangZone:
     def disable_for_player(self, player: Player) -> None:
         gang_zone_hide_for_player(player.id, self.id)
 
-    def start_war(self, player: Player, squad_atk: "Squad", squad_def: "Squad") -> None:
+    def start_war(self, player: Player, squad_atk: "Squad", squad_def: "Squad", pool: dict[int, "Player"]) -> None:
         self.gang_atk_id = squad_atk.uid
         self.gang_def_id = squad_def.uid
         self.capture_cooldown = 0
         self.capture_time = 900
         self.is_capture = True
+        Squad.send_war_message(player, pool)
+        squad_atk.start_war(self.id, player, pool)
+        squad_def.start_war(self.id, player, pool)
         self.update_capture_textdraw()
-        # Set params for Squads:
-        Squad.send_war_message(player, player._registry)
-        squad_atk.start_war(self.id, player, player._registry)
-        squad_def.start_war(self.id, player, player._registry)
-        for i in player._registry.values():
-            i: Player
+        for i in pool.values():
             if i.mode != ServerMode.freeroam_world:
                 continue
 
             if not i.squad:
                 continue
 
-            if not i.squad.uid == squad_atk.uid or not i.squad.uid == squad_def.uid:
-                continue
-
-            Squad.show_capture_textdraws_for_player(i)
-            i.set_team(i.squad.uid)
-            i.send_notification_message("Во время войны урон по своим был отключён!")
-            Squad.give_guns_for_player(i)
-            gang_zone_flash_for_player(i.id, self.id, squad_atk.color)
+            if i.squad.uid == squad_atk.uid or i.squad.uid == squad_def.uid:
+                Squad.show_capture_textdraws_for_player(i)
+                i.set_team(i.squad.uid)
+                i.send_notification_message("Во время войны урон по своим был отключён!")
+                Squad.give_guns_for_player(i)
+                gang_zone_flash_for_player(i.id, self.id, squad_atk.color)
 
         map_icons.append(create_dynamic_map_icon(
             *get_center(self.min_x, self.max_x, self.min_y, self.max_y),
@@ -136,7 +132,7 @@ class SquadGangZone:
             self.color = squad_pool_id[self.gang_atk_id].color
 
         s_atk = squad_pool_id[self.gang_atk_id]
-        s_def = s_atk = squad_pool_id[self.gang_def_id]
+        s_def  = squad_pool_id[self.gang_def_id]
         DataBase.save_squad_gangzone(
             id=self.id,
             squad_id=self.squad_id,
@@ -144,22 +140,19 @@ class SquadGangZone:
             capture_cooldown=900,
         )
         for player in registry.values():
-            player: Player
             if player.mode != ServerMode.freeroam_world:
                 continue
 
             if not player.squad:
                 continue
 
-            if not player.squad.uid == self.gang_atk_id or not player.squad.uid == self.gang_def_id:
-                continue
-
-            player.set_team(255)
-            player.send_notification_message(f"{s_atk.classification} {{{s_atk.color_hex}}}{s_atk.name}{{{Colors.white_hex}}} {'захватила' if win else 'не смогла захватить'} территорию!")
-            player.send_notification_message(f"Счёт: {{{s_atk}}}{self.gang_atk_score}{{{Colors.white_hex}}} - {{{s_def.color_hex}}}{self.gang_def_score}{{{Colors.white_hex}}}.")
-            Squad.hide_capture_textdraws(player)
-            gang_zone_stop_flash_for_player(player.id, self.id)
-            Squad.reload_gangzones_for_player(player)
+            if player.squad.uid == self.gang_atk_id or player.squad.uid == self.gang_def_id:
+                player.set_team(255)
+                player.send_notification_message(f"{s_atk.classification} {{{s_atk.color_hex}}}{s_atk.name}{{{Colors.white_hex}}} {'захватила' if win else 'не смогла захватить'} территорию!")
+                player.send_notification_message(f"Счёт: {{{s_atk.color_hex}}}{self.gang_atk_score}{{{Colors.white_hex}}} - {{{s_def.color_hex}}}{self.gang_def_score}{{{Colors.white_hex}}}.")
+                Squad.hide_capture_textdraws(player)
+                gang_zone_stop_flash_for_player(player.id, self.id)
+                Squad.reload_gangzones_for_player(player)
 
         for icon in map_icons:
             destroy_dynamic_map_icon(icon)
@@ -173,9 +166,9 @@ class SquadGangZone:
         squad_atk = squad_pool_id[self.gang_atk_id] # It's bad to get inst every N secs
         squad_def = squad_pool_id[self.gang_def_id]
         squad_capture_td[0].set_string(f"Time: {m}:{s}")
-        squad_capture_td[1].set_string(f"{squad_atk.tag} ~r~{self.gang_atk_score}")
+        squad_capture_td[1].set_string(f"{squad_atk.tag}: ~r~{self.gang_atk_score}")
         squad_capture_td[1].color(squad_atk.color)
-        squad_capture_td[2].set_string(f"{squad_def.tag} ~r~{self.gang_def_score}")
+        squad_capture_td[2].set_string(f"{squad_def.tag}: ~r~{self.gang_def_score}")
         squad_capture_td[2].color(squad_def.color)
 
     def update(self, **kwargs: Any) -> None:
@@ -275,9 +268,9 @@ class Squad:
         self.ranks[rank] = buffer
 
     def update_rank(self, rank_name: str, **kwargs: dict[Any]) -> None:
-        for value in self.members.copy().values():
+        for member, value in self.members.copy().items():
             if value == rank_name:
-                self.ranks[value] = kwargs["rank"]
+                self.members[member] = kwargs["rank"]
 
         for key, value in self.ranks.copy().items():
             if key == rank_name:
@@ -314,7 +307,7 @@ class Squad:
         capture = squad_capture_dict[initiator.name]
         s_atk = capture[1]
         s_def = capture[2]
-        gz_name = capture[3]
+        gz_name = capture[4]
         for player in pool.values():
             if player.mode != ServerMode.freeroam_world:
                 continue
@@ -322,15 +315,13 @@ class Squad:
             if not player.squad:
                 continue
 
-            if not player.squad.uid == s_atk.uid or not player.squad.uid == s_def.uid:
-                continue
-
-            player.send_notification_message(
-                f"{{{s_atk.color_hex}}}{initiator.name}{{{Colors.white_hex}}} инициировал захват территории {{{Colors.cmd_hex}}}{gz_name}{{{Colors.white_hex}}}!"
-            )
-            player.send_notification_message(
-                f"Началась война между {{{s_atk.color_hex}}}{s_atk.name}{{{Colors.white_hex}}} и {{{s_def.color_hex}}}{s_def.name}{{{Colors.white_hex}}}!"
-            )
+            if player.squad.uid == s_atk.uid or player.squad.uid == s_def.uid:
+                player.send_notification_message(
+                    f"{{{s_atk.color_hex}}}{initiator.name}{{{Colors.white_hex}}} инициировал захват территории {{{Colors.cmd_hex}}}{gz_name}{{{Colors.white_hex}}}!"
+                )
+                player.send_notification_message(
+                    f"Началась война между {{{s_atk.color_hex}}}{s_atk.name}{{{Colors.white_hex}}} и {{{s_def.color_hex}}}{s_def.name}{{{Colors.white_hex}}}!"
+                )
 
     @staticmethod
     def show_squad_gangzones_for_player(player: Player) -> None:
@@ -343,8 +334,12 @@ class Squad:
             gangzone.disable_for_player(player)
 
     @staticmethod
-    def reload_gangzones_for_player(player: Player):
+    def reload_gangzones_for_player(player: Player, update_color: bool = False):
         for gangzone in squad_gangzone_pool.values():
+            if update_color:
+                if gangzone.squad_id == player.squad.uid and gangzone.color != player.squad.color:
+                    gangzone.color = player.squad.color
+
             gangzone.disable_for_player(player)
             gangzone.show_for_player(player)
 

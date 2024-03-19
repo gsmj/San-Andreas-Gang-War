@@ -52,10 +52,6 @@ def on_ready():
     disable_interior_enter_exits()
     show_name_tags(True)
     show_player_markers(1)
-    send_rcon_command(f"name {ServerInfo.name}")
-    send_rcon_command(f"language {ServerInfo.language}")
-    send_rcon_command(f"game.map {ServerInfo.map}")
-    set_game_mode_text(ServerInfo.gamemode)
     DataBase.create_gangzones()
     DataBase.create_squad_gangzones()
     create_textdraws()
@@ -68,7 +64,7 @@ def on_ready():
             try:
                 color = gangs[gangzone.gang_id].color
             except:
-                color = Colors.white
+                color = 0xFFFFFFAA
 
             GangZoneData(
                 gangzone.id,
@@ -80,13 +76,14 @@ def on_ready():
                 gangzone.max_y,
                 gangzone.capture_cooldown,
             )
+    Squad.create_all()
     squad_gangzones = DataBase.load_squad_gangzones_order_by()
     if squad_gangzones:
         for squad_gz in squad_gangzones:
-            try:
+            if squad_gz.squad_id != -1:
                 color = squad_pool_id[squad_gz.squad_id].color
-            except:
-                color = Colors.white
+            else:
+                color = 0xFFFFFFAA
 
             SquadGangZone(
                 squad_gz.id,
@@ -98,8 +95,6 @@ def on_ready():
                 squad_gz.max_y,
                 squad_gz.capture_cooldown,
             )
-
-    Squad.create_all()
     vehicles = DataBase.load_vehicles_order_by()
     if vehicles:
         for vehicle in vehicles:
@@ -209,13 +204,6 @@ def every_second():
         send_client_message_to_all(Colors.ad, f"Наш Discord: {{{Colors.link_hex}}}discord.gg/yn2EcNJywH")
         send_client_message_to_all(Colors.ad, f"Наш IP: {{{Colors.cmd_hex}}}213.226.126.237:7777")
         send_client_message_to_all(Colors.ad, "~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~")
-
-    if ServerInfo.change_name_and_adverb != 0:
-        ServerInfo.change_name_and_adverb -= 1
-
-    else:
-        send_rcon_command(f"name {random.choice(ServerInfo.name_timer)}")
-        ServerInfo.change_name_and_adverb = 7200
 
     if ServerInfo.send_math != 0:
         ServerInfo.send_math -= 1

@@ -351,7 +351,6 @@ class Freeroam:
         player.show_bottom_commands()
         player.remove_unused_vehicle(ServerMode.freeroam_world)
         player.set_camera_behind()
-        player.set_color_ex(randint(0, 16777215))
         player.reset_weapons()
         player.set_health(100.0)
         GangWar.disable_gangzones_for_player(player)
@@ -360,6 +359,7 @@ class Freeroam:
         DeathMatch.disable_timer_for_player(player)
         if player.squad:
             Squad.show_squad_gangzones_for_player(player)
+            player.set_color_ex(player.squad.color)
             if player.squad.is_capturing:
                 player.set_color_ex(player.squad.color)
                 gz = squad_gangzone_pool[player.squad.capture_id]
@@ -370,6 +370,7 @@ class Freeroam:
                 cls.set_spawn_info_for_player(player)
                 return
 
+        player.set_color_ex(randint(0, 16777215))
         if player.settings.spawn_in_house and player.house:
             # Если стоит спавн в доме и есть дом
             player.checks.in_house = True

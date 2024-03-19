@@ -452,16 +452,16 @@ class DataBase():
 
     @classmethod
     def create_gangzones(cls):
+        create = False
         if not cls.get_gangzone():
-            for i, gz in enumerate(default_gang_zones):
-                cls.create_gangzone(i, -1, gz[0], gz[1], gz[2], gz[3])
-
-            print(f"Created: GangZones (database)")
+            create = True
 
         for gz in default_gang_zones:
-            Gangzone.create(gz[0], gz[1], gz[2], gz[3])
+            i = Gangzone.create(gz[0], gz[1], gz[2], gz[3])
+            if create:
+                cls.create_gangzone(i.id, -1, gz[0], gz[1], gz[2], gz[3])
 
-        print(f"Created: GangZones (server)")
+        print(f"Created: GangZones (database & server)")
 
     @classmethod
     def save_gangzone(cls, id: int, **kwargs) -> None:
@@ -668,12 +668,16 @@ class DataBase():
 
     @classmethod
     def create_squad_gangzones(cls):
-        if not cls.get_squad_gangzone():
-            for gz in default_squad_zones:
-                i = Gangzone.create(gz[0], gz[1], gz[2], gz[3])
+        create = False
+        if not cls.get_squad_gangzone(): # Чтобы не делать по 158 запросов в бд
+            create = True
+
+        for gz in default_squad_zones:
+            i = Gangzone.create(gz[0], gz[1], gz[2], gz[3])
+            if create:
                 cls.create_squad_gangzone(i.id, -1, gz[0], gz[1], gz[2], gz[3])
 
-            print(f"Created: SquadGangZones (database & server)")
+        print(f"Created: SquadGangZones (database & server)")
 
 
     @classmethod
@@ -833,6 +837,6 @@ class DataBase():
             session.commit()
 
         members = DataBase.load_squad_members(squad_id)
-        for member in members:
-            if member.rank == rank_name:
-                DataBase.save_squad_member(member.name, rank=kwargs["rank"])
+        for i in members:
+            if i.rank == rank_name:
+                DataBase.save_squad_member(i.member, rank=kwargs["rank"])

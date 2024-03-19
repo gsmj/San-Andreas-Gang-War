@@ -14,9 +14,6 @@ class ServerInfo:
         "SAGW | 1 | Reborn | Gangs, Drift and more",
     ]
     name_short: str = "SAGW"
-    gamemode: str = "GW/Freeroam"
-    language: str = "Russian"
-    map: str = "San Andreas"
     CAPTURE_LIMIT: int = 2
     SQUAD_CAPTURE_LIMIT: int = 2
     current_time = None
@@ -38,8 +35,8 @@ class Colors:
     aztecas: int = 0x00b4e1AA
     vagos: int = 0xffcd00AA
     rifa: int = 0x6666ffAA
-    # white: int = 0xFFFFFFFF
-    white: int = 0x59C7C2AA
+    white: int = 0xFFFFFFFF
+    # white: int = 0x59C7C2AA
     mask: int = 0x22222200
     textdraw: int = 0xFFFF00AA
     sms: int = 0xEDFF21FF
@@ -65,8 +62,7 @@ class Colors:
     vagos_hex: str = "FFA500"
     aztecas_hex: str = "00bfff"
     rifa_hex: str = "1560BD"
-    # white_hex: str = "FFFFFF"
-    white_hex: str = "59C7C2"
+    white_hex: str = "FFFFFF"
     red_hex: str = "ff6347"
     # cmd_hex: str = "FFCD00"
     cmd_hex: str = "D27677"
