@@ -1,7 +1,9 @@
 from dataclasses import dataclass
 from random import randint
-
+import re
 import samp  # type: ignore
+from pysamp import send_client_message
+from .consts import DEBUG
 
 
 @dataclass
@@ -800,3 +802,11 @@ def get_center(min_x: float, max_x: float, min_y: float, max_y: float) -> tuple[
 
 def encode():
     return samp.config(encoding="cp1251")
+
+def has_cyrillic(text: str) -> bool:
+    return bool(re.search('[а-яА-Я]', text))
+
+def send_debug_warning(player_id: int) -> None:
+    if DEBUG:
+        for i in range(3):
+            send_client_message(player_id, Colors.red_hex, "СЕРВЕР ЗАПУЩЕН В РЕЖИМЕ РАЗРАБОТКИ!")

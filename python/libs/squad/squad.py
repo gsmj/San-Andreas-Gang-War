@@ -1,12 +1,11 @@
 from dataclasses import dataclass, field
-from typing import Any, Union
-
+from typing import Any
 from pysamp.player import Player
 from pysamp import gang_zone_show_for_player, gang_zone_hide_for_player, gang_zone_flash_for_player, gang_zone_stop_flash_for_player
 from pystreamer import create_dynamic_map_icon, destroy_dynamic_map_icon
-
+from transliterate import translit
 from ..database.database import DataBase
-from ..utils.data import Colors, ServerMode, get_center, convert_seconds
+from ..utils.data import Colors, ServerMode, get_center, convert_seconds, has_cyrillic
 from ..static.textdraws import squad_capture_td
 
 squad_capture_dict: dict[str, tuple[str, "Squad", "Squad", int, str]] = {}
@@ -165,10 +164,18 @@ class SquadGangZone:
         _, m, s = convert_seconds(self.capture_time)
         squad_atk = squad_pool_id[self.gang_atk_id] # It's bad to get inst every N secs
         squad_def = squad_pool_id[self.gang_def_id]
+        a_name: str = squad_atk.name
+        d_name: str = squad_def.name
+        if has_cyrillic(squad_atk.name):
+            a_name = translit(squad_atk.name, "ru", reversed=True, strict=True)
+
+        if has_cyrillic(squad_def.name):
+            d_name = translit(squad_def.name, "ru", reversed=True, strict=True)
+
         squad_capture_td[0].set_string(f"Time: {m}:{s}")
-        squad_capture_td[1].set_string(f"{squad_atk.tag}: ~r~{self.gang_atk_score}")
+        squad_capture_td[1].set_string(f"{a_name}: ~r~{self.gang_atk_score}")
         squad_capture_td[1].color(squad_atk.color)
-        squad_capture_td[2].set_string(f"{squad_def.tag}: ~r~{self.gang_def_score}")
+        squad_capture_td[2].set_string(f"{d_name}: ~r~{self.gang_def_score}")
         squad_capture_td[2].color(squad_def.color)
 
     def update(self, **kwargs: Any) -> None:
@@ -213,10 +220,6 @@ class Squad:
 
         squad_pool[self.name] = self
         squad_pool_id[self.uid] = self
-        print("Members:")
-        print(f"\t{self.members}\n")
-        print("Ranks:")
-        print(f"\t{self.ranks}\n")
 
     @classmethod
     def create(cls, name: str, tag: str, leader: str, classification: str, color: int, color_hex: str) -> "Squad":
@@ -358,4 +361,5 @@ class Squad:
         player.reset_weapons()
         player.give_weapon(24, 150)
         player.give_weapon(31, 500)
-        player.set_armour(100.0)
+
+# TODO: Запретить использовать freeroam / vip команды во время сквад капта

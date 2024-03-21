@@ -476,6 +476,7 @@ class VehicleComponents:
 
 class Vehicle(BaseVehicle):
     _registry: dict = {}
+    player_vehicles: dict[int, "Vehicle"] = {}
     def __init__(self, vehicle_id: int):
         super().__init__(vehicle_id)
         self.owner = NO_VEHICLE_OWNER
@@ -548,8 +549,9 @@ class Vehicle(BaseVehicle):
         return self.get_model() in VehicleIDs.cars
 
     @classmethod
-    def remove_unused_player_vehicle(cls, vehicle: "Vehicle") -> None:
+    def remove_unused_player_vehicle(cls, player_id: int, vehicle: "Vehicle") -> None:
         cls.delete_registry(vehicle)
+        del cls.player_vehicles[player_id]
         if vehicle.is_valid():
             vehicle.destroy()
 

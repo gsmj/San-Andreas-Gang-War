@@ -76,7 +76,11 @@
     },
     "password": "",
     "pawn": {
-        "legacy_plugins": ["streamer", "PySAMP", "DriftPointsCounter"],
+        "legacy_plugins": [
+            "streamer",
+            " PySAMP",
+            " DriftPointsCounter"
+        ],
         "main_scripts": [
             "empty"
         ]

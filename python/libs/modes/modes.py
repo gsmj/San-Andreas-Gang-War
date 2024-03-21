@@ -361,7 +361,6 @@ class Freeroam:
             Squad.show_squad_gangzones_for_player(player)
             player.set_color_ex(player.squad.color)
             if player.squad.is_capturing:
-                player.set_color_ex(player.squad.color)
                 gz = squad_gangzone_pool[player.squad.capture_id]
                 x, y = get_center(gz.min_x, gz.max_x, gz.min_y, gz.max_y)
                 gang_zone_flash_for_player(player.id, player.squad.capture_id, gangs[gz.gang_atk_id].color)

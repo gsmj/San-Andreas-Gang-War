@@ -61,9 +61,9 @@ def on_ready():
     gangzones = DataBase.load_gangzones_order_by()
     if gangzones:
         for gangzone in gangzones:
-            try:
+            if gangzone.gang_id != -1:
                 color = gangs[gangzone.gang_id].color
-            except:
+            else:
                 color = 0xFFFFFFAA
 
             GangZoneData(
@@ -217,5 +217,5 @@ def every_second():
 def on_vehicle_death(vehicle: Vehicle, killer: Player) -> None:
     killer = Player.from_registry_native(killer)
     if vehicle.owner != NO_VEHICLE_OWNER:
-        killer.vehicle.inst = None
+        killer.remove_player_vehicle()
         return Vehicle.delete_registry(vehicle)

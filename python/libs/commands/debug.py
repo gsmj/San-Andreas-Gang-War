@@ -5,6 +5,7 @@ from pysamp.commands import cmd
 from pysamp.dialog import Dialog
 
 from ...player import Player
+from ...vehicle import Vehicle
 from ..gang.gang import gangzone_pool
 from ..house.house import houses
 from ..squad.squad import squad_gangzone_pool
@@ -70,3 +71,52 @@ def gdata(player: Player):
         ""
     ).show(player)
     return player.send_notification_message(f"Всего гангзон: {len(gangzone_pool)}")
+
+
+@cmd_ex(
+    cmd,
+    description="Отладочная информация об игроке",
+    mode=CommandType.admin_type
+)
+@Player.using_registry
+def pdata(player: Player, player_id: int):
+    if not player.admin.check_command_access(7):
+        return
+
+    player_ = Player.from_registry_native(int(player_id))
+    content = ""
+    for attr, value in vars(player_).items():
+        content += f"{attr}: {value}\n"
+
+        player.send_notification_message(f"{attr} {value}")
+        print(f"{attr} | {value}")
+
+@cmd_ex(
+    cmd,
+    description="Отладочная информация об авто на сервере",
+    mode=CommandType.admin_type
+)
+@Player.using_registry
+def vdata(player: Player):
+    if not player.admin.check_command_access(7):
+        return
+
+    vehicles = Vehicle._registry
+    content = ""
+    for attr, value in vehicles.items():
+        content += f"{attr}: {value}\n"
+
+        player.send_notification_message(f"{attr} {value}")
+
+@cmd_ex(
+    cmd,
+    description="Отладочная информация об авто игрока на сервере",
+    mode=CommandType.admin_type
+)
+@Player.using_registry
+def pvdata(player: Player, player_id: int):
+    if not player.admin.check_command_access(7):
+        return
+
+    player_ = Player.from_registry_native(int(player_id))
+    player.send_notification_message(f"{player_.player_vehicle}")

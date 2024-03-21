@@ -12,6 +12,7 @@ from pysamp.timer import kill_timer, set_timer
 
 from ...player import Dialogs, Player
 from ...vehicle import Vehicle
+from ..modes.modes import GangWar
 from ..database.database import DataBase
 from ..gang.gang import gangs, gangzone_pool
 from ..squad.squad import Squad, squad_pool_id, squad_gangzone_pool
@@ -513,6 +514,20 @@ def capture(player: Player):
         if i.is_capture:
             total_captures += 1
 
+    if gangzone.gang_id == -1:
+        player.send_notification_message("Территория была автоматически захвачена.")
+        gangzone.gang_id = player.gang.gang_id
+        gangzone.color = player.gang.color
+        DataBase.save_gangzone(gangzone.id, gang_id=gangzone.gang_id, color=gangzone.color)
+        for p in Player._registry.values():
+            if p.mode != ServerMode.gangwar_world:
+                continue
+
+            if p.gang == -1:
+                continue
+
+            return GangWar.reload_gangzones_for_player(p)
+
     if total_captures == ServerInfo.CAPTURE_LIMIT:
         return player.send_error_message("В данный момент на сервере достигнут лимит захвата!")
 
@@ -708,7 +723,6 @@ def ahelp(player: Player):
             f"{{{Colors.cmd_hex}}}/unjail\t{{{Colors.red_hex}}}2\t{{{Colors.dialog_hex}}}Выпустить игрока из деморгана\n"
             f"{{{Colors.cmd_hex}}}/mute\t{{{Colors.red_hex}}}2\t{{{Colors.dialog_hex}}}Выдача мута игроку\n"
             f"{{{Colors.cmd_hex}}}/unmute\t{{{Colors.red_hex}}}2\t{{{Colors.dialog_hex}}}Снятие мута с игрока\n"
-            f"{{{Colors.cmd_hex}}}/hp\t{{{Colors.red_hex}}}2\t{{{Colors.dialog_hex}}}Восстановление HP до 100\n"
             f"{{{Colors.cmd_hex}}}/goto\t{{{Colors.red_hex}}}2\t{{{Colors.dialog_hex}}}Перемещение к игроку\n"
             f"{{{Colors.cmd_hex}}}/gethere\t{{{Colors.red_hex}}}2\t{{{Colors.dialog_hex}}}Перемещение игрока к себе\n"
             f"{{{Colors.cmd_hex}}}/slap\t{{{Colors.red_hex}}}3\t{{{Colors.dialog_hex}}}Подбросить игрока\n"
@@ -1226,6 +1240,9 @@ def ban(player: Player, player_id: int, *reason: str):
     if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
+    if target.admin.level > player.admin.level:
+        return player.send_error_message("Вы не можете забанить администратора, который выше Вас уровнем!")
+
     target.checks.banned = True
     target.ban_from_server(reason)
     return send_client_message_to_all(Colors.admin, f"Администратор {player.name}[{player.id}] забанил игрока {target.name}[{target.id}]. Причина: {reason}.")
@@ -1241,10 +1258,8 @@ def unban(player: Player, player_name: str):
         return player.send_error_message("Вам недоступна эта команда!")
 
     target = DataBase.get_player_name(player_name)
-    if not target.is_connected():
-        return player.send_error_message("Игрок не найден!")
 
-    if not target.checks.banned:
+    if not target.is_banned:
         return player.send_error_message("Игрок не находится в бане!")
 
     DataBase.save_player_name(player_name, is_banned=False)
@@ -1545,7 +1560,7 @@ def spawnveh(player: Player, vehicle_id: int, color_one: int, color_two: int):
     )
     player_veh.set_info(owner=player.get_name())
     player.update_vehicle_inst(player_veh)
-    player.put_in_vehicle(player.vehicle.inst.id, 0)
+    player.put_in_vehicle(player.player_vehicle.id, 0)
 
 @cmd
 @Player.using_registry
@@ -1656,7 +1671,7 @@ def elegy(player: Player, color_one: int, color_two: int):
     )
     player_veh.set_info(owner=player.get_name())
     player.update_vehicle_inst(player_veh)
-    player.put_in_vehicle(player.vehicle.inst.id, 0)
+    player.put_in_vehicle(player.player_vehicle.id, 0)
 
 @cmd_ex(
     cmd,
@@ -1699,7 +1714,7 @@ def infernus(player: Player, color_one: int, color_two: int):
     )
     player_veh.set_info(owner=player.get_name())
     player.update_vehicle_inst(player_veh)
-    player.put_in_vehicle(player.vehicle.inst.id, 0)
+    player.put_in_vehicle(player.player_vehicle.id, 0)
 
 @cmd_ex(
     cmd,
@@ -1742,7 +1757,7 @@ def bullet(player: Player, color_one: int, color_two: int):
     )
     player_veh.set_info(owner=player.get_name())
     player.update_vehicle_inst(player_veh)
-    player.put_in_vehicle(player.vehicle.inst.id, 0)
+    player.put_in_vehicle(player.player_vehicle.id, 0)
 
 @cmd_ex(
     cmd,
@@ -1958,24 +1973,7 @@ def bb(player: Player):
     return send_client_message_to_all(Colors.cmd, f"{player.name}[{player.id}] прощается со всеми игроками!")
 
 @cmd_ex(
-    cmd,
-    description="Отладочная информация об игроке",
-    mode=CommandType.admin_type
-)
-@Player.using_registry
-def pdata(player: Player, player_id: int):
-    if not player.admin.check_command_access(7):
-        return
-
-    player_ = Player.from_registry_native(int(player_id))
-    content = ""
-    for attr, value in vars(player_).items():
-        content += f"{attr}: {value}\n"
-
-    player.send_notification_message(f"{attr} = {value}")
-
-@cmd_ex(
-    cmd(use_function_name=False, aliases="class"),
+    cmd(use_function_name=False, aliases=("class", "cls")),
     description="Выбор класса",
     mode=CommandType.freeroam_type
 )
@@ -1999,6 +1997,19 @@ def class_(player: Player):
     player.toggle_spectating(True)
     player.toggle_spectating(False)
     return player.send_notification_message("Выберите скин.")
+
+@cmd_ex(
+    cmd,
+    description="Очистить чат",
+)
+@Player.using_registry
+def cclear(player: Player):
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    for _ in range(30):
+        player.send_notification_message(" ")
 
 @cmd_ex(
     cmd,
@@ -2038,6 +2049,36 @@ def createsquad(player: Player):
 
     return Dialogs.show_squad_create_dialog(player)
 
+
+@cmd_ex(
+    cmd,
+    description="Чат фракции",
+    mode=CommandType.freeroam_type
+)
+@Player.using_registry
+def r(player: Player, *message: str) -> None:
+    player.kick_if_not_logged_or_jailed()
+    if not player.check_cooldown(1.5):
+        return player.send_error_message("Не флудите!")
+
+    if not player.check_player_mode([ServerMode.freeroam_world]):
+        return
+
+    if not player.squad:
+        return player.send_error_message("У Вас нет фракции!")
+
+    if player.checks.muted:
+        return player.send_error_message("Доступ в чат ограничен!")
+
+    message = " ".join(message)
+    if len(message) == 0:
+        return player.send_error_message("Использование команды: /r message")
+
+    for player_in_registry in Player._registry.values():
+        if player.squad.uid == player_in_registry.squad.uid:
+            player_in_registry.send_client_message(player.squad.color, f"[S] {player.squad.members[player.name]} {player.get_name()}: {message}")
+
+    return
 
 @cmd_ex(
     cmd,
