@@ -1,6 +1,5 @@
 import time
 from datetime import datetime
-from transliterate import translit
 from functools import wraps
 from math import sqrt
 from typing import Literal
@@ -63,7 +62,6 @@ class Player(BasePlayer):
         self.gang_id: int = -1 # No gang
         self.gang: Gang = gangs[self.gang_id]
         self.mode: int = 0
-        self.drift_counter: dict = {}
         self.timers: PlayerTimers = PlayerTimers()
         self.checks: PlayerChecks = PlayerChecks()
         self.time: PlayerTime = PlayerTime()
@@ -74,6 +72,7 @@ class Player(BasePlayer):
         self.settings: PlayerSettings = PlayerSettings()
         self.house: House = None
         self.squad: Squad = None
+
 
     @classmethod
     def from_registry_native(cls, player: BasePlayer) -> "Player":
@@ -172,7 +171,7 @@ class Player(BasePlayer):
         return set_timer(kick, 1000, False, player.id)
 
     def mute_timer(self) -> None:
-        self.send_notification_message("Время муто вышло.")
+        self.send_message("Время муто вышло.")
         self.checks.muted = False
         self.time.mute = 0
         self.timers.mute_id = TIMER_ID_NONE
@@ -185,83 +184,18 @@ class Player(BasePlayer):
         if not self.settings.disabled_ping_td:
             return textdraws.fps_and_ping[0].set_string(f"Ping: {self.get_ping()}")
 
-    def create_drift_counter(self) -> dict[int, "PlayerTextDraw"]:
-        self.drift_counter[1] = PlayerTextDraw.create(self, 320.000000, 375.000000, "Drift Counter")
-        self.drift_counter[1].alignment(2)
-        self.drift_counter[1].background_color(255)
-        self.drift_counter[1].letter_size(0.500000, 1.000000)
-        self.drift_counter[1].font(3)
-        self.drift_counter[1].color(-1)
-        self.drift_counter[1].set_outline(1)
-        self.drift_counter[1].set_proportional(True)
-        self.drift_counter[2] = PlayerTextDraw.create(self, 250.000000, 385.000000, "Cash: ~g~0")
-        self.drift_counter[2].background_color(255)
-        self.drift_counter[2].font(2)
-        self.drift_counter[2].letter_size(0.200000, 1.000000)
-        self.drift_counter[2].color(-1)
-        self.drift_counter[2].set_outline(1)
-        self.drift_counter[2].set_proportional(True)
-        self.drift_counter[3] = PlayerTextDraw.create(self, 250.000000, 395.000000, "Score: ~y~0")
-        self.drift_counter[3].background_color(255)
-        self.drift_counter[3].font(2)
-        self.drift_counter[3].letter_size(0.200000, 1.000000)
-        self.drift_counter[3].color(-1)
-        self.drift_counter[3].set_outline(1)
-        self.drift_counter[3].set_outline(1)
-        self.drift_counter[3].set_proportional(True)
-        self.drift_counter[4] = PlayerTextDraw.create(self, 250.000000, 405.000000, "Combo: ~r~x1")
-        self.drift_counter[4].background_color(255)
-        self.drift_counter[4].font(2)
-        self.drift_counter[4].letter_size(0.200000, 1.000000)
-        self.drift_counter[4].color(-1)
-        self.drift_counter[4].set_outline(1)
-        self.drift_counter[4].set_proportional(True)
-        return self.drift_counter
+    def set_spawn_protection_timer(self) -> int:
+        self.set_health(10000000.0)
+        self.game_text("~r~Spawn protection", 5000, 4)
+        return set_timer(self.remove_spawn_protection, 5000, False)
 
-    def show_drift_counter(self) -> None:
-        self.drift_counter[1].show()
-        self.drift_counter[2].show()
-        self.drift_counter[3].show()
-        self.drift_counter[4].show()
-
-    def destroy_drift_counter(self) -> None:
-        self.drift_counter[1].destroy()
-        self.drift_counter[2].destroy()
-        self.drift_counter[3].destroy()
-        self.drift_counter[4].destroy()
-
-    def hide_drift_counter(self) -> None:
-        self.drift_counter[1].hide()
-        self.drift_counter[2].hide()
-        self.drift_counter[3].hide()
-        self.drift_counter[4].hide()
-        self.give_drift_money()
-
-    def give_drift_money(self) -> None:
-        self.score += self.drift.score * self.drift.combo
-        self.drift_counter[2].set_string(f"Cash: ~g~0$")
-        self.drift_counter[3].set_string(f"Score: ~y~0")
-        self.drift_counter[4].set_string(f"Combo: ~r~x1")
-        self.set_money_ex(self.drift.money)
-        if self.drift.score != 0:
-            self.set_score(self.score)
-
-        self.drift.money = 0
-        self.drift.score = 0
-        self.drift.combo = 1
-
-    def update_drift_counter(self, value: int) -> None:
-        self.drift.money += value
-        self.drift.score += int(value / 100)
-        self.drift.combo += int(self.drift.score / 100)
-        self.drift_counter[2].set_string(f"Cash: ~g~{self.drift.money}$")
-        self.drift_counter[3].set_string(f"Score: ~y~{self.drift.score}")
-        self.drift_counter[4].set_string(f"Combo: ~r~x{self.drift.combo}")
+    def remove_spawn_protection(self) -> None:
+        self.set_health(100.0)
 
     def send_error_message(self, message: str) -> None:
         return self.send_client_message(Colors.red, f"[ОШИБКА] {message}")
 
-    def send_notification_message(self, message: str) -> None:
+    def send_message(self, message: str) -> None:
         return self.send_client_message(Colors.white, f"{message}")
 
     def send_debug_message(self, event: str, message: str) -> bool:
@@ -515,14 +449,14 @@ def on_player_connect(player: Player) -> None:
         DataBase.update_analytics()
         remove_objects_for_player(player)
         for i in range(25):
-            player.send_notification_message(" ")
+            player.send_message(" ")
 
         send_debug_warning(player.id)
         player.toggle_clock(False)
-        player.send_notification_message(f"Добро пожаловать на сервер {{{Colors.cmd_hex}}}{ServerInfo.name_short}{{{Colors.white_hex}}}!")
-        player.send_notification_message(f"Версия: {{{Colors.cmd_hex}}}{__version__}{{{Colors.white_hex}}}!")
-        player.send_notification_message(f"Created by: {{{Colors.vagos_hex}}}Ykpauneu{{{Colors.white_hex}}} & {{{Colors.rifa_hex}}}Rein.{{{Colors.white_hex}}}!")
-        player.send_notification_message(f"Сервер посетили: {{{Colors.cmd_hex}}}{DataBase.get_analytics()}{{{Colors.white_hex}}} игроков.")
+        player.send_message(f"Добро пожаловать на сервер {{{Colors.cmd_hex}}}{ServerInfo.name_short}{{{Colors.white_hex}}}!")
+        player.send_message(f"Версия: {{{Colors.cmd_hex}}}{__version__}{{{Colors.white_hex}}}!")
+        player.send_message(f"Created by: {{{Colors.vagos_hex}}}Ykpauneu{{{Colors.white_hex}}} & {{{Colors.rifa_hex}}}Rein.{{{Colors.white_hex}}}!")
+        player.send_message(f"Сервер посетили: {{{Colors.cmd_hex}}}{DataBase.get_analytics()}{{{Colors.white_hex}}} игроков.")
         player.show_server_logotype()
         player.show_ping_textdraw()
         player.timers.every_sec = set_timer(player.every_second, 1000, True)
@@ -533,7 +467,7 @@ def on_player_connect(player: Player) -> None:
 
         if not player_db.is_banned:
             if player.get_ip() == player_db.registration_ip:
-                player.send_notification_message("Вы автоматически авторизовались!")
+                player.send_message("Вы автоматически авторизовались!")
                 return player.set_data_after_login(player_db)
 
             return Dialogs.show_login_dialog(player)
@@ -544,7 +478,6 @@ def on_player_connect(player: Player) -> None:
 @Player.using_registry
 def on_player_disconnect(player: Player, reason: int) -> None:
     player.vip.disable_clist_timer_for_player()
-
     veh = player.player_vehicle
     if veh:
         veh.set_owner(NO_VEHICLE_OWNER)
@@ -600,7 +533,6 @@ def on_player_disconnect(player: Player, reason: int) -> None:
 @Player.on_request_class
 @Player.using_registry
 def on_player_request_class(player: Player, class_id: int) -> None:
-    player.send_debug_message("on_request_class_handle", f"Player: {player} | Class: {class_id}")
     player.kick_if_not_logged()
     if player.checks.selected_skin:
         return player.spawn()
@@ -630,7 +562,6 @@ def on_player_request_spawn(player: Player) -> None:
 @Player.on_spawn
 @Player.using_registry
 def on_player_spawn(player: Player) -> None:
-    player.send_debug_message("on_spawn_handle", f"Player: {player} | Mode: {player.get_virtual_world()} | Interior {player.get_interior()}")
     if player.mode == ServerMode.gangwar_world:
         return GangWar.enable_mode_for_player(player)
 
@@ -653,9 +584,10 @@ def on_player_click_map(player: Player, x: float, y: float, z: float) -> None:
 @Player.using_registry
 def on_player_death(player: Player, killer: Player, reason: int) -> None:
     killer = Player.from_registry_native(killer)
-    player.send_debug_message("on_death_handle", f"Player: {player} | Killer: {killer}")
     player.kick_if_not_logged()
     player.deaths += 1
+    playertextdraws.hide_speedometer(player)
+    playertextdraws.hide_drift_counter(player, destroy=True)
     if player.mode == ServerMode.gangwar_world or player.mode == ServerMode.gangwar_world:
         player.masks = 0
         player.heals = 0
@@ -733,7 +665,7 @@ def on_player_text(player: Player, text: str) -> False:
 
     if player.mode == ServerMode.freeroam_world or player.mode in ServerMode.deathmatch_worlds:
         send_client_message_to_all(
-            player.color, f"[{player.squad.tag if player.squad else ''}] | {player.get_name()}[{player.id}]:{{{'FFFFFF'}}} {text}"
+            player.color, f"{f'[{player.squad.tag}] | ' if player.squad else ''}{player.get_name()}[{player.id}]:{{{'FFFFFF'}}} {text}"
         )
         return False
 
@@ -749,7 +681,6 @@ def on_player_text(player: Player, text: str) -> False:
 @Player.using_registry
 def on_player_pick_up_dynamic_pickup(player: Player, pickup: DynamicPickup) -> None:
     player.kick_if_not_logged()
-    player.send_debug_message("on_pick_up_pickup_handle", f"Player: {player} | Pickup.id: {pickup.id}")
     if not player.check_pickup_cooldown(5):
         return
 
@@ -958,16 +889,15 @@ def on_player_key_state_change(player: Player, new_keys: int, old_keys: int) -> 
 def on_player_state_change(player: Player, new_state: int, old_state: int) -> None:
     if new_state == PLAYER_STATE_DRIVER:
 
-        player.send_notification_message(f"Чтобы завести авто используйте {{{Colors.cmd_hex}}}LCTRL{{{Colors.white_hex}}}.")
+        player.send_message(f"Чтобы завести авто используйте {{{Colors.cmd_hex}}}LCTRL{{{Colors.white_hex}}}.")
         p_veh = player.player_vehicle
         player.update_vehicle_inst(p_veh)
-        player.send_debug_message("on_state_change_handle", f"Vehicle: {p_veh} | In")
         if p_veh and p_veh.is_car:
             playertextdraws.create_speedometer(player)
             playertextdraws.show_speedometer(player, p_veh)
 
             if player.mode == ServerMode.freeroam_world:
-                player.create_drift_counter()
+                playertextdraws.create_drift_counter(player)
         else:
             return p_veh.set_params_ex(
                 1,
@@ -981,12 +911,11 @@ def on_player_state_change(player: Player, new_state: int, old_state: int) -> No
 
     if new_state == PLAYER_STATE_ONFOOT and old_state == PLAYER_STATE_DRIVER:
         p_veh = player.player_vehicle
-        player.send_debug_message("on_state_change_handle", f"{p_veh} | Out")
         if p_veh and p_veh.is_car:
             playertextdraws.hide_speedometer(player)
 
             if player.mode == ServerMode.freeroam_world:
-                player.destroy_drift_counter()
+                playertextdraws.hide_drift_counter(player, destroy=True)
 
         else:
             return p_veh.set_params_ex(
@@ -1003,20 +932,20 @@ def on_player_state_change(player: Player, new_state: int, old_state: int) -> No
 @Player.using_registry
 def on_player_start_drift(player: Player) -> None:
     if player.mode == ServerMode.freeroam_world:
-        return player.show_drift_counter()
+        return playertextdraws.show_drift_counter(player)
 
 @Drift.on_update
 @Player.using_registry
 def on_drift_update_handle(player: Player, value: int, combo: int, flag_id: int, distance: float, speed: float) -> None:
     if player.mode == ServerMode.freeroam_world:
         if not player.time.afk >= 1 and player.player_vehicle.is_car:
-            return player.update_drift_counter(value)
+            return playertextdraws.update_drift_counter(player, value)
 
 @Drift.on_end
 @Player.using_registry
 def on_player_end_drift(player: Player, value: int, combo: int, reason: int) -> None:
     if player.mode == ServerMode.freeroam_world:
-        return player.hide_drift_counter()
+        return playertextdraws.hide_drift_counter(player)
 
 
 class Dialogs:
@@ -1060,7 +989,7 @@ class Dialogs:
         if list_item == 0: # Heals
             if player.heals < 3:
                 player.heals = 3
-                player.send_notification_message(f"Вы взяли {{{Colors.cmd_hex}}}3{{{Colors.white_hex}}} аптечки. Используйте {{{Colors.cmd_hex}}}/healme{{{Colors.white_hex}}} для применения аптечки.")
+                player.send_message(f"Вы взяли {{{Colors.cmd_hex}}}3{{{Colors.white_hex}}} аптечки. Используйте {{{Colors.cmd_hex}}}/healme{{{Colors.white_hex}}} для применения аптечки.")
                 return cls.show_warehouse_dialog(player)
 
             else:
@@ -1069,7 +998,7 @@ class Dialogs:
         if list_item == 1: # Masks
             if player.masks < 3:
                 player.masks = 3
-                player.send_notification_message(f"Вы взяли {{{Colors.cmd_hex}}}3{{{Colors.white_hex}}} маски. Используйте {{{Colors.cmd_hex}}}/mask{{{Colors.white_hex}}} для применения маски.")
+                player.send_message(f"Вы взяли {{{Colors.cmd_hex}}}3{{{Colors.white_hex}}} маски. Используйте {{{Colors.cmd_hex}}}/mask{{{Colors.white_hex}}} для применения маски.")
                 return cls.show_warehouse_dialog(player)
 
             else:
@@ -1096,7 +1025,7 @@ class Dialogs:
                 return player.send_error_message("Вы не можете взять больше!")
 
             player.give_weapon(24, 100)
-            player.send_notification_message(f"Вы взяли {{{Colors.cmd_hex}}}Desert Eagle{{{Colors.white_hex}}}.")
+            player.send_message(f"Вы взяли {{{Colors.cmd_hex}}}Desert Eagle{{{Colors.white_hex}}}.")
 
         if list_item == 1:
             _weapon, ammo = player.get_weapon_data(3)
@@ -1104,7 +1033,7 @@ class Dialogs:
                 return player.send_error_message("Вы не можете взять больше!")
 
             player.give_weapon(25, 100)
-            player.send_notification_message(f"Вы взяли {{{Colors.cmd_hex}}}Shotgun{{{Colors.white_hex}}}.")
+            player.send_message(f"Вы взяли {{{Colors.cmd_hex}}}Shotgun{{{Colors.white_hex}}}.")
 
         if list_item == 2:
             _weapon, ammo = player.get_weapon_data(5)
@@ -1112,7 +1041,7 @@ class Dialogs:
                 return player.send_error_message("Вы не можете взять больше!")
 
             player.give_weapon(30, 100)
-            player.send_notification_message(f"Вы взяли {{{Colors.cmd_hex}}}AK-47{{{Colors.white_hex}}}.")
+            player.send_message(f"Вы взяли {{{Colors.cmd_hex}}}AK-47{{{Colors.white_hex}}}.")
 
         if list_item == 3:
             _weapon, ammo = player.get_weapon_data(5)
@@ -1120,7 +1049,7 @@ class Dialogs:
                 return player.send_error_message("Вы не можете взять больше!")
 
             player.give_weapon(31, 100)
-            player.send_notification_message(f"Вы взяли {{{Colors.cmd_hex}}}M4{{{Colors.white_hex}}}.")
+            player.send_message(f"Вы взяли {{{Colors.cmd_hex}}}M4{{{Colors.white_hex}}}.")
 
         if list_item == 4:
             _weapon, ammo = player.get_weapon_data(6)
@@ -1128,11 +1057,11 @@ class Dialogs:
                 return player.send_error_message("Вы не можете взять больше!")
 
             player.give_weapon(33, 100)
-            player.send_notification_message(f"Вы взяли {{{Colors.cmd_hex}}}Rifle{{{Colors.white_hex}}}.")
+            player.send_message(f"Вы взяли {{{Colors.cmd_hex}}}Rifle{{{Colors.white_hex}}}.")
 
         if list_item == 5:
             player.give_weapon(5, 1)
-            player.send_notification_message(f"Вы взяли {{{Colors.cmd_hex}}}Baseball Bat{{{Colors.white_hex}}}.")
+            player.send_message(f"Вы взяли {{{Colors.cmd_hex}}}Baseball Bat{{{Colors.white_hex}}}.")
 
         return cls.show_warehouse_dialog(player)
 
@@ -1223,7 +1152,7 @@ class Dialogs:
         player = Player.from_registry_native(player)
         if not response:
             player.email = ""
-            player.send_notification_message("Вы пропустили этот шаг.")
+            player.send_message("Вы пропустили этот шаг.")
 
         else:
             if len(input_text) < 6 or len(input_text) > 32:
@@ -1372,7 +1301,7 @@ class Dialogs:
 
         gangzone = DataBase.load_gangzone(player._gz_choice)
         x, y = get_center(gangzone.min_x, gangzone.max_x, gangzone.min_y, gangzone.max_y)
-        player.send_notification_message(f"Маршрут GPS построен. Используйте {{{Colors.cmd_hex}}}/gps{{{Colors.white_hex}}}, для отключения.")
+        player.send_message(f"Маршрут GPS построен. Используйте {{{Colors.cmd_hex}}}/gps{{{Colors.white_hex}}}, для отключения.")
         return player.set_checkpoint_to_gangzone(x, y, 0)
 
     @classmethod
@@ -1436,7 +1365,7 @@ class Dialogs:
         player = Player.from_registry_native(player)
         if not response:
             del GangWar.capture_dict[player.name]
-            return player.send_notification_message("Вы отменили захват территории.")
+            return player.send_message("Вы отменили захват территории.")
 
         gangs[GangWar.capture_dict[player.name][1]].capture_id = GangWar.capture_dict[player.name][3]
         gangs[GangWar.capture_dict[player.name][2]].capture_id = GangWar.capture_dict[player.name][3]
@@ -1444,7 +1373,6 @@ class Dialogs:
         gangs[GangWar.capture_dict[player.name][2]].is_capturing = True
         _capture = GangWar.capture_dict[player.name]
 
-        player.send_debug_message("start_capture_response", f"{Player._registry.values()}")
         for player_reg in Player._registry.values():
             if player_reg.mode != ServerMode.gangwar_world:
                 continue
@@ -1561,7 +1489,7 @@ class Dialogs:
                 return player.send_error_message("Вы уже выбрали этот режим!")
 
             player.set_mode(ServerMode.gangwar_world)
-            player.send_notification_message(f"Вы выбрали режим {{{Colors.cmd_hex}}}GangWar{{{Colors.white_hex}}}!")
+            player.send_message(f"Вы выбрали режим {{{Colors.cmd_hex}}}GangWar{{{Colors.white_hex}}}!")
             return cls.show_gang_choice_dialog(player)
 
         if list_item == 1:
@@ -1572,13 +1500,13 @@ class Dialogs:
             player.force_class_selection()
             player.toggle_spectating(True)
             player.toggle_spectating(False)
-            player.send_notification_message(f"Вы выбрали режим {{{Colors.cmd_hex}}}Freeroam{{{Colors.white_hex}}}!")
+            player.send_message(f"Вы выбрали режим {{{Colors.cmd_hex}}}Freeroam{{{Colors.white_hex}}}!")
 
         if list_item == 2:
             if player.mode in ServerMode.deathmatch_worlds:
                 return cls.show_select_deathmatch_dialog(player)
 
-            player.send_notification_message(f"Вы выбрали режим {{{Colors.cmd_hex}}}Deathmatch{{{Colors.white_hex}}}!")
+            player.send_message(f"Вы выбрали режим {{{Colors.cmd_hex}}}Deathmatch{{{Colors.white_hex}}}!")
             return cls.show_select_deathmatch_dialog(player)
 
     @classmethod
@@ -1621,7 +1549,7 @@ class Dialogs:
                 player.settings.disabled_ping_td = True
                 player.hide_ping_textdraw()
 
-            return player.send_notification_message(f"Вы {{{Colors.cmd_hex}}}{'отключили' if player.settings.disabled_ping_td else 'включили'}{{{Colors.white_hex}}} показание пинга.")
+            return player.send_message(f"Вы {{{Colors.cmd_hex}}}{'отключили' if player.settings.disabled_ping_td else 'включили'}{{{Colors.white_hex}}} показание пинга.")
 
         if list_item == 3:
             if player.settings.disabled_global_chat_gw:
@@ -1630,7 +1558,7 @@ class Dialogs:
             else:
                 player.settings.disabled_global_chat_gw = True
 
-            return player.send_notification_message(f"Вы {{{Colors.cmd_hex}}}{'включили' if player.settings.disabled_global_chat_gw else 'отключили'}{{{Colors.white_hex}}} глобальный чат по умолчанию в режиме {{{Colors.cmd_hex}}}GangWar{{{Colors.white_hex}}}.")
+            return player.send_message(f"Вы {{{Colors.cmd_hex}}}{'включили' if player.settings.disabled_global_chat_gw else 'отключили'}{{{Colors.white_hex}}} глобальный чат по умолчанию в режиме {{{Colors.cmd_hex}}}GangWar{{{Colors.white_hex}}}.")
 
         if list_item == 4:
             if player.settings.spawn_in_house:
@@ -1639,7 +1567,7 @@ class Dialogs:
             else:
                 player.settings.spawn_in_house = True
 
-            return player.send_notification_message(f"Вы {{{Colors.cmd_hex}}}{'включили' if player.settings.spawn_in_house else 'отключили'}{{{Colors.white_hex}}} спавн в доме по умолчанию.")
+            return player.send_message(f"Вы {{{Colors.cmd_hex}}}{'включили' if player.settings.spawn_in_house else 'отключили'}{{{Colors.white_hex}}} спавн в доме по умолчанию.")
 
     @classmethod
     def show_email_privacy_dialog(cls, player) -> None:
@@ -1663,7 +1591,7 @@ class Dialogs:
             return player.send_error_message("Длина почты должна быть от 6 и до 32 символов!")
 
         player.email = input_text
-        return player.send_notification_message("Вы успешно изменили свой e-mail!")
+        return player.send_message("Вы успешно изменили свой e-mail!")
 
     @classmethod
     def show_pin_privacy_dialog(cls, player) -> None:
@@ -1687,7 +1615,7 @@ class Dialogs:
             return player.send_error_message("Длина PIN кода должна быть от до 6 символов!")
 
         player.pin = input_text
-        return player.send_notification_message("Вы успешно изменили свой PIN код!")
+        return player.send_message("Вы успешно изменили свой PIN код!")
 
     @classmethod
     def show_admin_ask_dialog(cls, player: Player):
@@ -1711,7 +1639,7 @@ class Dialogs:
             return player.send_error_message("Вы не указали сообщение!")
 
         player.send_report_message(player, input_text)
-        return player.send_notification_message("Ваше сообщение было отправлено!")
+        return player.send_message("Ваше сообщение было отправлено!")
 
     @classmethod
     def show_donation_dialog(cls, player: Player):
@@ -1748,7 +1676,7 @@ class Dialogs:
 
             player.donate -= 50
             player.vip.level = 0
-            return player.send_notification_message(f"Вы купили {{{VIPData.colors[player.vip.level]}}}BRONZE VIP{{{Colors.white_hex}}}!")
+            return player.send_message(f"Вы купили {{{VIPData.colors[player.vip.level]}}}BRONZE VIP{{{Colors.white_hex}}}!")
 
         if list_item == 2:
             if player.donate < 100:
@@ -1759,7 +1687,7 @@ class Dialogs:
 
             player.donate -= 100
             player.vip.level = 1
-            return player.send_notification_message(f"Вы купили {{{VIPData.colors[player.vip.level]}}}SILVER VIP{{{Colors.white_hex}}}!")
+            return player.send_message(f"Вы купили {{{VIPData.colors[player.vip.level]}}}SILVER VIP{{{Colors.white_hex}}}!")
 
         if list_item == 3:
             if player.donate < 200:
@@ -1770,7 +1698,7 @@ class Dialogs:
 
             player.donate -= 200
             player.vip.level = 2
-            return player.send_notification_message(f"Вы купили {{{VIPData.colors[player.vip.level]}}}GOLD VIP{{{Colors.white_hex}}}!")
+            return player.send_message(f"Вы купили {{{VIPData.colors[player.vip.level]}}}GOLD VIP{{{Colors.white_hex}}}!")
 
     @classmethod
     def show_skin_gang_dialog(cls, player: Player):
@@ -1795,7 +1723,7 @@ class Dialogs:
             return
 
         player.set_skin_ex(int(input_text))
-        return player.send_notification_message(f"Ваш скин был изменён на модель {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}.")
+        return player.send_message(f"Ваш скин был изменён на модель {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}.")
 
     @classmethod
     def show_weapons_dialog(cls, player: Player):
@@ -1843,7 +1771,7 @@ class Dialogs:
 
         player.set_money_ex(gun[2], increase=False)
         player.give_weapon(gun[0], 100)
-        return player.send_notification_message(f"Вы купили {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}.")
+        return player.send_message(f"Вы купили {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}.")
 
     @classmethod
     def show_vehicles_dialog(cls, player: Player) -> None:
@@ -1977,7 +1905,7 @@ class Dialogs:
             player.set_pos(x, y, z)
             player.set_camera_behind()
 
-        return player.send_notification_message(f"Вы были перемещены на позицию {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}.")
+        return player.send_message(f"Вы были перемещены на позицию {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}.")
 
     @classmethod
     def show_positions_dialog(cls, player: Player) -> None:
@@ -2033,7 +1961,7 @@ class Dialogs:
             return cls.show_positions_dialog(player)
 
         DataBase.create_admin_pos(player, input_text, *player.get_pos(), player.get_facing_angle())
-        return player.send_notification_message(f"Вы создали позицию: {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}.")
+        return player.send_message(f"Вы создали позицию: {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}.")
 
     @classmethod
     def show_delete_position_dialog(cls, player: Player) -> None:
@@ -2058,7 +1986,7 @@ class Dialogs:
             player.send_error_message("Не удалось найти позицию!")
             return cls.show_delete_position_dialog(player)
 
-        player.send_notification_message(f"Вы удалили позицию: {{{Colors.cmd_hex}}}{pos_id.name}{{{Colors.white_hex}}}.")
+        player.send_message(f"Вы удалили позицию: {{{Colors.cmd_hex}}}{pos_id.name}{{{Colors.white_hex}}}.")
         return DataBase.delete_admin_position(player, pos_id.name)
 
     @classmethod
@@ -2087,7 +2015,7 @@ class Dialogs:
         player.set_pos(pos.x, pos.y, pos.z)
         player.set_facing_angle(pos.rotation)
         player.set_camera_behind()
-        player.send_notification_message(f"Вы переместились в позицию: {{{Colors.cmd_hex}}}{pos.name}{{{Colors.white_hex}}}.")
+        player.send_message(f"Вы переместились в позицию: {{{Colors.cmd_hex}}}{pos.name}{{{Colors.white_hex}}}.")
 
     @classmethod
     def show_tuning_dialog(cls, player: Player) -> None:
@@ -2117,7 +2045,7 @@ class Dialogs:
 
         p_veh = player.player_vehicle
         if list_item == 0:
-            player.send_notification_message("Укажите числа от 0 до 255 через запятую (17, 18)")
+            player.send_message("Укажите числа от 0 до 255 через запятую (17, 18)")
             return Dialog.create(
                 1, "Покраска",
                 "Укажите цвета:",
@@ -2265,7 +2193,7 @@ class Dialogs:
 
         player.player_vehicle.change_color(color_one, color_two)
         player.play_sound(1052, x=0.0, y=0.0, z=0.0)
-        return player.send_notification_message("Цвет успешно изменён!")
+        return player.send_message("Цвет успешно изменён!")
 
     @classmethod
     def tuning_nitro_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
@@ -2283,7 +2211,7 @@ class Dialogs:
             player.player_vehicle.add_component(VehicleComponents.nitro_x10)
 
         player.play_sound(1052, x=0.0, y=0.0, z=0.0)
-        return player.send_notification_message(f"Установлено {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}!")
+        return player.send_message(f"Установлено {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}!")
 
     @classmethod
     def tuning_wheels_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
@@ -2293,7 +2221,7 @@ class Dialogs:
 
         player.player_vehicle.add_component(VehicleComponents.wheels[input_text])
         player.play_sound(1052, x=0.0, y=0.0, z=0.0)
-        return player.send_notification_message(f"Установлены диски {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}!")
+        return player.send_message(f"Установлены диски {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}!")
 
     @classmethod
     def tuning_paint_job_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
@@ -2306,7 +2234,7 @@ class Dialogs:
         player.player_vehicle.change_color(1, 1)
         player.player_vehicle.change_paintjob(VehicleComponents.paint_jobs[model][pj_int])
         player.play_sound(1052, x=0.0, y=0.0, z=0.0)
-        return player.send_notification_message(f"Установлена покрасночная работа {{{Colors.cmd_hex}}}{pj_int}{{{Colors.white_hex}}}!")
+        return player.send_message(f"Установлена покрасночная работа {{{Colors.cmd_hex}}}{pj_int}{{{Colors.white_hex}}}!")
 
     @classmethod
     def tuning_spoiler_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
@@ -2316,7 +2244,7 @@ class Dialogs:
 
         player.player_vehicle.add_component(VehicleComponents.spoilers[player.player_vehicle.get_model()][input_text])
         player.play_sound(1052, x=0.0, y=0.0, z=0.0)
-        return player.send_notification_message(f"Установлен спойлер {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}!")
+        return player.send_message(f"Установлен спойлер {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}!")
 
     @classmethod
     def tuning_front_bumper_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
@@ -2326,7 +2254,7 @@ class Dialogs:
 
         player.player_vehicle.add_component(VehicleComponents.front_bumper[player.player_vehicle.get_model()][input_text])
         player.play_sound(1052, x=0.0, y=0.0, z=0.0)
-        return player.send_notification_message(f"Установлен передний бампер {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}!")
+        return player.send_message(f"Установлен передний бампер {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}!")
 
     @classmethod
     def tuning_rear_bumper_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
@@ -2336,7 +2264,7 @@ class Dialogs:
 
         player.player_vehicle.add_component(VehicleComponents.rear_bumper[player.player_vehicle.get_model()][input_text])
         player.play_sound(1052, x=0.0, y=0.0, z=0.0)
-        return player.send_notification_message(f"Установлен задний бампер {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}!")
+        return player.send_message(f"Установлен задний бампер {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}!")
 
     @classmethod
     def tuning_hydraulics_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
@@ -2346,11 +2274,11 @@ class Dialogs:
 
         if list_item == 0:
             player.player_vehicle.add_component(VehicleComponents.hydraulics)
-            return player.send_notification_message(f"Гидравлика была {{{Colors.cmd_hex}}}установлена{{{Colors.white_hex}}}!")
+            return player.send_message(f"Гидравлика была {{{Colors.cmd_hex}}}установлена{{{Colors.white_hex}}}!")
 
         if list_item == 1:
             player.player_vehicle.remove_component(VehicleComponents.hydraulics)
-            return player.send_notification_message(f"Гидравлика была {{{Colors.cmd_hex}}}удалена{{{Colors.white_hex}}}!")
+            return player.send_message(f"Гидравлика была {{{Colors.cmd_hex}}}удалена{{{Colors.white_hex}}}!")
 
         player.play_sound(1052, x=0.0, y=0.0, z=0.0)
 
@@ -2419,7 +2347,7 @@ class Dialogs:
             return
 
         player.set_color_ex(Colors.clist_rgba[list_item])
-        return player.send_notification_message(f"{{{Colors.clist_hex[list_item]}}}Цвет изменён!")
+        return player.send_message(f"{{{Colors.clist_hex[list_item]}}}Цвет изменён!")
 
     @classmethod
     def show_house_info_dialog(cls, player: Player, pickup_id: int) -> None:
@@ -2452,7 +2380,7 @@ class Dialogs:
         player.set_pos(x, y, z)
         player.set_mode(player.house.interior_id + 1000)
         if player.house.owner == NO_HOUSE_OWNER:
-            player.send_notification_message(f"Для покупки дома используйте {{{Colors.cmd_hex}}}/buyhouse{{{Colors.white_hex}}}.")
+            player.send_message(f"Для покупки дома используйте {{{Colors.cmd_hex}}}/buyhouse{{{Colors.white_hex}}}.")
 
         del player.cache["HOUSE_PICKUP_ID"]
 
@@ -2586,7 +2514,7 @@ class Dialogs:
             amount = int(player.house.price / 2)
             player.set_money_ex(amount)
             player.house.remove_owner()
-            player.send_notification_message(
+            player.send_message(
                 f"Вы продали дом {{{Colors.cmd_hex}}}№{player.house.uid}{{{Colors.white_hex}}} за {{{Colors.cmd_hex}}}{amount}${{{Colors.white_hex}}}."
             )
             player.set_mode(ServerMode.freeroam_world)
@@ -2716,9 +2644,10 @@ class Dialogs:
         )
         player.squad = squad
         Squad.show_squad_gangzones_for_player(player)
-        player.send_notification_message(
+        player.send_message(
             f"Вы успешно создали фракцию: {{{squad.color_hex}}}{player.squad.name}{{{Colors.white_hex}}}!"
         )
+        player.set_color_ex(squad.color)
 
     @classmethod
     def show_squad_info_dialog(cls, player: Player) -> None:
@@ -2859,7 +2788,7 @@ class Dialogs:
             return cls.show_squad_change_name_dialog(player)
 
         player.squad.update(name=input_text)
-        player.send_notification_message(f"Вы изменили название фракции на {{{player.squad.color_hex}}}{input_text}{{{Colors.white_hex}}}.")
+        player.send_message(f"Вы изменили название фракции на {{{player.squad.color_hex}}}{input_text}{{{Colors.white_hex}}}.")
         return cls.show_squad_info_dialog(player)
 
     @classmethod
@@ -2889,7 +2818,7 @@ class Dialogs:
             return cls.show_squad_change_tag_dialog(player)
 
         player.squad.update(tag=input_text)
-        player.send_notification_message(f"Вы изменили тег фракции на {{{player.squad.color_hex}}}{input_text}{{{Colors.white_hex}}}.")
+        player.send_message(f"Вы изменили тег фракции на {{{player.squad.color_hex}}}{input_text}{{{Colors.white_hex}}}.")
         return cls.show_squad_info_dialog(player)
 
     @classmethod
@@ -2918,7 +2847,7 @@ class Dialogs:
             return cls.show_squad_info_dialog(player)
 
         player.squad.update(classification=input_text)
-        player.send_notification_message(f"Вы изменили тип фракции на {{{player.squad.color_hex}}}{input_text.lower()}{{{Colors.white_hex}}}.")
+        player.send_message(f"Вы изменили тип фракции на {{{player.squad.color_hex}}}{input_text.lower()}{{{Colors.white_hex}}}.")
         return cls.show_squad_info_dialog(player)
 
     @classmethod
@@ -3032,7 +2961,7 @@ class Dialogs:
                 player.cache["CREATE_SQUAD_RANK"][0]["NAME"],
                 player.cache["CREATE_SQUAD_RANK"][1]["PERMISSIONS"]
             )
-            player.send_notification_message(
+            player.send_message(
                 f'Вы создали ранг {{{player.squad.color_hex}}}{player.cache["CREATE_SQUAD_RANK"][0]["NAME"]}{{{Colors.white_hex}}}.'
             )
             del player.cache["CREATE_SQUAD_RANK"]
@@ -3042,7 +2971,7 @@ class Dialogs:
             return cls.show_squad_create_rank_perms_dialog(player)
 
         player.cache["CREATE_SQUAD_RANK"][1]["PERMISSIONS"].append(input_text)
-        player.send_notification_message(player.cache)
+        player.send_message(player.cache)
         return cls.show_squad_create_rank_perms_dialog(player)
 
     @classmethod
@@ -3080,7 +3009,7 @@ class Dialogs:
                 return cls.show_squad_rank_settings_dialog(player)
 
             player.squad.delete_rank(input_text)
-            player.send_notification_message(
+            player.send_message(
                 f"Вы удалили ранг {{{player.squad.color_hex}}}{input_text}{{{Colors.white_hex}}}."
             )
             return cls.show_squad_rank_settings_dialog(player)
@@ -3133,7 +3062,7 @@ class Dialogs:
         player.squad.update_rank(player.cache["SQUAD_RANK_LIST_DIALOG"][1], rank=input_text)
         hex_ = player.squad.color_hex
         old_ = player.cache["SQUAD_RANK_LIST_DIALOG"][1]
-        player.send_notification_message(
+        player.send_message(
             f"Вы переименовали ранг {{{hex_}}}{old_}{{{Colors.white_hex}}} в {{{hex_}}}{input_text}{{{Colors.white_hex}}}."
         )
         return cls.show_squad_rank_settings_dialog(player)
@@ -3199,7 +3128,7 @@ class Dialogs:
                 return cls.show_squad_members_list_dialog(player, 'uninvite')
 
             player.squad.kick_member(input_text)
-            player.send_notification_message(f"Вы выгнали {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}} из фракции.")
+            player.send_message(f"Вы выгнали {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}} из фракции.")
 
         if player.cache["SQUAD_MEMBERS_LIST_DIALOG"][0] == "change":
             player.cache["SQUAD_MEMBERS_LIST_DIALOG"][1] = input_text
@@ -3232,7 +3161,7 @@ class Dialogs:
 
         member: str = player.cache["SQUAD_MEMBERS_LIST_DIALOG"][1]
         player.squad.update_member_rank(member, input_text)
-        player.send_notification_message(
+        player.send_message(
             f"Вы изменили ранг участника {{{Colors.cmd_hex}}}{member}{{{Colors.white_hex}}} на {{{Colors.cmd_hex}}}{input_text}{{{Colors.white_hex}}}."
         )
         del player.cache["SQUAD_MEMBERS_LIST_DIALOG"]
@@ -3271,7 +3200,7 @@ class Dialogs:
             return cls.show_squad_invite_member_dialog(player)
 
         player.cache["SQUAD_PLAYER_INVITE"] = []
-        player.cache["SQUAD_PLAYER_INVITE"][0] = target
+        player.cache["SQUAD_PLAYER_INVITE"].append(target)
         return cls.show_squad_invite_ranks_dialog(player)
 
     @classmethod
@@ -3303,8 +3232,8 @@ class Dialogs:
             return cls.show_squad_invite_member_dialog(player)
 
 
-        player.cache["SQUAD_PLAYER_INVITE"][1] = input_text
-        player.send_notification_message("Предложение отправлено!")
+        player.cache["SQUAD_PLAYER_INVITE"].append(input_text)
+        player.send_message("Предложение отправлено!")
         cls.show_squad_invite_ask_dialog(
             player.cache["SQUAD_PLAYER_INVITE"][0],
             player,
@@ -3317,8 +3246,8 @@ class Dialogs:
     def show_squad_invite_ask_dialog(cls, player: Player, sent_by: Player, rank: str) -> None:
         player = Player.from_registry_native(player)
         player.cache["SQUAD_INVITE_SENT_BY"] = []
-        player.cache["SQUAD_INVITE_SENT_BY"][0] = sent_by
-        player.cache["SQUAD_INVITE_SENT_BY"][1] = rank
+        player.cache["SQUAD_INVITE_SENT_BY"].append(sent_by)
+        player.cache["SQUAD_INVITE_SENT_BY"].append(rank)
         c_ = sent_by.squad.color_hex
         return Dialog.create(
             0, f"Приглашение от {sent_by.name}",
@@ -3332,18 +3261,22 @@ class Dialogs:
     def squad_squad_invite_ask_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
         player = Player.from_registry_native(player)
         if not response:
-            player.cache["SQUAD_INVITE_SENT_BY"][0].send_notification_message(
+            player.cache["SQUAD_INVITE_SENT_BY"][0].send_message(
                 f"Игрок {{{Colors.cmd_hex}}}{player.name}{{{Colors.white_hex}}} отказался вступать во фракцию."
             )
             del player.cache["SQUAD_INVITE_SENT_BY"]
+            p = player.cache["SQUAD_INVITE_SENT_BY"][0]
+            del p.cache["SQUAD_INVITE_SENT_BY"]
             return
 
         owner: Player = player.cache["SQUAD_INVITE_SENT_BY"][0]
         rank: str = player.cache["SQUAD_INVITE_SENT_BY"][1]
         owner.squad.create_member(player.name, rank)
         player.squad = owner.squad
-        player.send_notification_message(f"Вы вступили во фракцию {{{player.squad.color_hex}}}{player.squad.name}{{{Colors.white_hex}}}.")
+        player.send_message(f"Вы вступили во фракцию {{{player.squad.color_hex}}}{player.squad.name}{{{Colors.white_hex}}}.")
         del player.cache["SQUAD_INVITE_SENT_BY"]
+        p = player.cache["SQUAD_INVITE_SENT_BY"][0]
+        del p.cache["SQUAD_INVITE_SENT_BY"]
 
     @classmethod
     def show_squad_gangzones_dialog(cls, player: Player) -> None:
@@ -3388,7 +3321,7 @@ class Dialogs:
         player = Player.from_registry_native(player)
         if not response:
             del squad_capture_dict[player.name]
-            return player.send_notification_message("Вы отменили захват территории.")
+            return player.send_message("Вы отменили захват территории.")
 
         squad_atk: Squad = squad_capture_dict[player.name][1]
         squad_def: Squad = squad_capture_dict[player.name][2]

@@ -8,6 +8,8 @@ from pysamp.commands import cmd
 commands: dict[str, list[str, int]] = {}
 _NO_DESC: str = "Нет описания"
 
+c = {}
+
 
 @dataclass(frozen=True)
 class CommandType:

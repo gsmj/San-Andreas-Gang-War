@@ -809,4 +809,4 @@ def has_cyrillic(text: str) -> bool:
 def send_debug_warning(player_id: int) -> None:
     if DEBUG:
         for i in range(3):
-            send_client_message(player_id, Colors.red_hex, "СЕРВЕР ЗАПУЩЕН В РЕЖИМЕ РАЗРАБОТКИ!")
+            send_client_message(player_id, Colors.blue, "СЕРВЕР ЗАПУЩЕН В РЕЖИМЕ РАЗРАБОТКИ!")

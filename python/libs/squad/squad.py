@@ -1,6 +1,7 @@
 from dataclasses import dataclass, field
 from typing import Any
 from pysamp.player import Player
+from pysamp.timer import set_timer, kill_timer
 from pysamp import gang_zone_show_for_player, gang_zone_hide_for_player, gang_zone_flash_for_player, gang_zone_stop_flash_for_player
 from pystreamer import create_dynamic_map_icon, destroy_dynamic_map_icon
 from transliterate import translit
@@ -108,7 +109,7 @@ class SquadGangZone:
             if i.squad.uid == squad_atk.uid or i.squad.uid == squad_def.uid:
                 Squad.show_capture_textdraws_for_player(i)
                 i.set_team(i.squad.uid)
-                i.send_notification_message("Во время войны урон по своим был отключён!")
+                i.send_message("Во время войны урон по своим был отключён!")
                 Squad.give_guns_for_player(i)
                 gang_zone_flash_for_player(i.id, self.id, squad_atk.color)
 
@@ -147,8 +148,8 @@ class SquadGangZone:
 
             if player.squad.uid == self.gang_atk_id or player.squad.uid == self.gang_def_id:
                 player.set_team(255)
-                player.send_notification_message(f"{s_atk.classification} {{{s_atk.color_hex}}}{s_atk.name}{{{Colors.white_hex}}} {'захватила' if win else 'не смогла захватить'} территорию!")
-                player.send_notification_message(f"Счёт: {{{s_atk.color_hex}}}{self.gang_atk_score}{{{Colors.white_hex}}} - {{{s_def.color_hex}}}{self.gang_def_score}{{{Colors.white_hex}}}.")
+                player.send_message(f"{s_atk.classification} {{{s_atk.color_hex}}}{s_atk.name}{{{Colors.white_hex}}} {'захватила' if win else 'не смогла захватить'} территорию!")
+                player.send_message(f"Счёт: {{{s_atk.color_hex}}}{self.gang_atk_score}{{{Colors.white_hex}}} - {{{s_def.color_hex}}}{self.gang_def_score}{{{Colors.white_hex}}}.")
                 Squad.hide_capture_textdraws(player)
                 gang_zone_stop_flash_for_player(player.id, self.id)
                 Squad.reload_gangzones_for_player(player)
@@ -319,10 +320,10 @@ class Squad:
                 continue
 
             if player.squad.uid == s_atk.uid or player.squad.uid == s_def.uid:
-                player.send_notification_message(
+                player.send_message(
                     f"{{{s_atk.color_hex}}}{initiator.name}{{{Colors.white_hex}}} инициировал захват территории {{{Colors.cmd_hex}}}{gz_name}{{{Colors.white_hex}}}!"
                 )
-                player.send_notification_message(
+                player.send_message(
                     f"Началась война между {{{s_atk.color_hex}}}{s_atk.name}{{{Colors.white_hex}}} и {{{s_def.color_hex}}}{s_def.name}{{{Colors.white_hex}}}!"
                 )
 
@@ -361,5 +362,6 @@ class Squad:
         player.reset_weapons()
         player.give_weapon(24, 150)
         player.give_weapon(31, 500)
+
 
 # TODO: Запретить использовать freeroam / vip команды во время сквад капта

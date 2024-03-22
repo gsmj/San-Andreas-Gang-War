@@ -12,7 +12,7 @@ from pysamp.timer import kill_timer, set_timer
 
 from ...player import Dialogs, Player
 from ...vehicle import Vehicle
-from ..modes.modes import GangWar
+from ..modes.modes import GangWar, Freeroam
 from ..database.database import DataBase
 from ..gang.gang import gangs, gangzone_pool
 from ..squad.squad import Squad, squad_pool_id, squad_gangzone_pool
@@ -83,7 +83,7 @@ def healme(player: Player):
         player.heals -= 1
         player.set_health(health + 25.0)
         player.set_chat_bubble("Использует аптечку..", Colors.white, 20.0, 5000)
-        return player.send_notification_message(f"Вы использовали аптечку. Здоровье восстановлено на {{FF0000}}25HP{{{Colors.white_hex}}}.")
+        return player.send_message(f"Вы использовали аптечку. Здоровье восстановлено на {{FF0000}}25HP{{{Colors.white_hex}}}.")
 
     else:
         return player.send_error_message("Вы не можете использовать аптечку сейчас!")
@@ -117,7 +117,7 @@ def mask(player: Player):
     player.set_attached_object(2, 19801, 2, offset_x=0.067, offset_y=0.026, offset_z=0.001000, rotation_x=0.30, rotation_y=85.600000, rotation_z=175.400000, scale_x=1.321000, scale_y=1.32700, scale_z=1.257000)
     player.set_color(Colors.mask)
     player.set_chat_bubble("Надевает маску..", Colors.white, 20.0, 5000)
-    return player.send_notification_message(f"Ваше местоположение на карте скрыто. Используйте {{{Colors.cmd_hex}}}/maskoff{{{Colors.white_hex}}}, чтобы снять маску.")
+    return player.send_message(f"Ваше местоположение на карте скрыто. Используйте {{{Colors.cmd_hex}}}/maskoff{{{Colors.white_hex}}}, чтобы снять маску.")
 
 @cmd_ex(
     cmd,
@@ -141,7 +141,7 @@ def maskoff(player: Player):
 
     player.checks.wearing_mask = False
     player.set_color(player.gang.color)
-    return player.send_notification_message("Вы сняли маску.")
+    return player.send_message("Вы сняли маску.")
 
 @cmd_ex(
     cmd(aliases=("changegang", "g")),
@@ -193,7 +193,7 @@ def randomskin(player: Player):
         return player.send_error_message("Вы можете изменить скин только в доме!")
 
     player.set_skin_ex(random.choice(player.gang.skins))
-    return player.send_notification_message("Ваш скин был изменён.")
+    return player.send_message("Ваш скин был изменён.")
 
 @cmd_ex(
     cmd,
@@ -336,7 +336,7 @@ def vc(player: Player, *message: str):
     vip_status_color = VIPData.colors[player.vip.level]
     for player_in_registry in Player._registry.values():
         if player_in_registry.vip.level != -1:
-            player_in_registry.send_notification_message(f"{{{Colors.vip_hex}}}[VIP] {{{vip_status_color}}}[{vip_status}]{{{Colors.white_hex}}} {player.get_name()}[{player.id}]: {message}")
+            player_in_registry.send_message(f"{{{Colors.vip_hex}}}[VIP] {{{vip_status_color}}}[{vip_status}]{{{Colors.white_hex}}} {player.get_name()}[{player.id}]: {message}")
 
 @cmd_ex(
     cmd,
@@ -382,11 +382,11 @@ def rclist(player: Player):
         else:
             player.set_random_color_ex()
 
-        return player.send_notification_message(f"Вы {{{Colors.cmd_hex}}}выключили{{{Colors.white_hex}}} переливающийся цвет игрока.")
+        return player.send_message(f"Вы {{{Colors.cmd_hex}}}выключили{{{Colors.white_hex}}} переливающийся цвет игрока.")
 
     player.vip.is_random_clist_enabled = True
     player.vip.random_clist_timer_id = set_timer(player.set_rainbow_color, 1000, True)
-    return player.send_notification_message(f"Вы {{{Colors.cmd_hex}}}включили{{{Colors.white_hex}}} переливающийся цвет игрока.")
+    return player.send_message(f"Вы {{{Colors.cmd_hex}}}включили{{{Colors.white_hex}}} переливающийся цвет игрока.")
 
 @cmd_ex(
     cmd,
@@ -409,7 +409,7 @@ def jp(player: Player):
         return player.send_error_message(f"Вам не хватает {{{Colors.cmd_hex}}}{10000 - player.money}${{{Colors.red_hex}}}!")
 
     player.set_special_action(SPECIAL_ACTION_USEJETPACK)
-    return player.send_notification_message(f"Вы купили {{{Colors.cmd_hex}}}Jetpack{{{Colors.white_hex}}}.")
+    return player.send_message(f"Вы купили {{{Colors.cmd_hex}}}Jetpack{{{Colors.white_hex}}}.")
 
 
 @cmd_ex(
@@ -452,7 +452,7 @@ def gangzones(player: Player):
     if not player.check_player_mode([ServerMode.gangwar_world]):
         return
 
-    player.send_notification_message("Вы можете выбрать территорию, нажав ЛКМ/Enter.")
+    player.send_message("Вы можете выбрать территорию, нажав ЛКМ/Enter.")
     return Dialogs.show_gangzones_dialog_page_one(player)
 
 @cmd_ex(
@@ -481,7 +481,7 @@ def weather(player: Player, weather_id: int):
         return player.send_error_message("Допустимый диапазон погоды: 0 - 22!")
 
     player.set_weather(int(weather_id))
-    return player.send_notification_message(f"Погода была изменена на {weather_id} ID.")
+    return player.send_message(f"Погода была изменена на {weather_id} ID.")
 
 @cmd_ex(
     cmd(aliases=("capt", "c")),
@@ -515,7 +515,7 @@ def capture(player: Player):
             total_captures += 1
 
     if gangzone.gang_id == -1:
-        player.send_notification_message("Территория была автоматически захвачена.")
+        player.send_message("Территория была автоматически захвачена.")
         gangzone.gang_id = player.gang.gang_id
         gangzone.color = player.gang.color
         DataBase.save_gangzone(gangzone.id, gang_id=gangzone.gang_id, color=gangzone.color)
@@ -654,7 +654,7 @@ def id(player: Player, nickname: str):
     if not found:
         return player.send_error_message("Игроков не найдено!")
 
-    return player.send_notification_message(f"Найдено игроков: {{{Colors.cmd_hex}}}{found}")
+    return player.send_message(f"Найдено игроков: {{{Colors.cmd_hex}}}{found}")
 
 @cmd_ex(
     cmd,
@@ -819,7 +819,7 @@ def admins(player: Player):
         if player_in_registry.admin.level != 0:
             admins_str += f"{player_in_registry.name}[{player_in_registry.id}] - {player_in_registry.admin.level} "
 
-    return player.send_notification_message(f"Список администраторов: {{{Colors.cmd_hex}}}{admins_str}")
+    return player.send_message(f"Список администраторов: {{{Colors.cmd_hex}}}{admins_str}")
 
 @cmd
 @Player.using_registry
@@ -873,7 +873,7 @@ def spec(player: Player, player_id: int):
     player.toggle_spectating(True)
     player.set_interior(target.get_interior())
     player.set_virtual_world(target.mode)
-    return player.send_notification_message(f"Вы наблюдаете за игроком: {{{Colors.cmd_hex}}}{target.name}{{{Colors.white_hex}}}.")
+    return player.send_message(f"Вы наблюдаете за игроком: {{{Colors.cmd_hex}}}{target.name}{{{Colors.white_hex}}}.")
 
 @cmd
 @Player.using_registry
@@ -889,7 +889,7 @@ def specoff(player: Player):
         return player.send_error_message("Вы не ведёте наблюдение!")
 
     player.toggle_spectating(False)
-    return player.send_notification_message("Наблюдение прекращено.")
+    return player.send_message("Наблюдение прекращено.")
 
 @cmd
 @Player.using_registry
@@ -959,7 +959,7 @@ def unjail(player: Player, player_id: int):
     if not target.checks.jailed:
         player.send_error_message("Игрок не в деморгане!")
 
-    target.send_notification_message(f"Администратор {{{Colors.cmd_hex}}}{player.name}[{player.id}]{{{Colors.white_hex}}} выпустил Вас выпустили из деморгана.")
+    target.send_message(f"Администратор {{{Colors.cmd_hex}}}{player.name}[{player.id}]{{{Colors.white_hex}}} выпустил Вас выпустили из деморгана.")
     kill_timer(target.timers.jail_id)
     target.checks.jailed = False
     target.time.jail = 0
@@ -1035,7 +1035,7 @@ def unmute(player: Player, player_id: int):
     if not target.checks.muted:
         player.send_error_message("Игрок не в муте!")
 
-    target.send_notification_message(f"Администратор {{{Colors.cmd_hex}}}{player.name}[{player.id}]{{{Colors.white_hex}}} снял с Вас мут.")
+    target.send_message(f"Администратор {{{Colors.cmd_hex}}}{player.name}[{player.id}]{{{Colors.white_hex}}} снял с Вас мут.")
     kill_timer(target.timers.mute_id)
     target.checks.muted = False
     target.time.mute = 0
@@ -1057,7 +1057,7 @@ def heal(player: Player):
         return
 
     player.set_health(100.0)
-    return player.send_notification_message(f"Значение HP восстановлено до {{{Colors.cmd_hex}}}100{{{Colors.white_hex}}}.")
+    return player.send_message(f"Значение HP восстановлено до {{{Colors.cmd_hex}}}100{{{Colors.white_hex}}}.")
 
 @cmd_ex(
     cmd,
@@ -1074,7 +1074,7 @@ def armour(player: Player):
         return
 
     player.set_armour(100.0)
-    return player.send_notification_message(f"Значение AR восстановлено до {{{Colors.cmd_hex}}}100{{{Colors.white_hex}}}.")
+    return player.send_message(f"Значение AR восстановлено до {{{Colors.cmd_hex}}}100{{{Colors.white_hex}}}.")
 
 @cmd
 @Player.using_registry
@@ -1103,7 +1103,7 @@ def goto(player: Player, player_id: int):
     player.set_pos(x+5.0, y+5.0, z)
     player.set_interior(target.get_interior())
     player.set_virtual_world(target.mode)
-    return player.send_notification_message(f"Вы были перемещены к игроку {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}}.")
+    return player.send_message(f"Вы были перемещены к игроку {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}}.")
 
 @cmd
 @Player.using_registry
@@ -1132,7 +1132,7 @@ def gethere(player: Player, player_id: int):
     target.set_pos(x+5.0, y+5.0, z)
     target.set_interior(player.get_interior())
     target.set_virtual_world(player.mode)
-    return player.send_notification_message(f"Вы переместили игрока {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}}.")
+    return player.send_message(f"Вы переместили игрока {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}}.")
 
 @cmd
 @Player.using_registry
@@ -1159,7 +1159,7 @@ def slap(player: Player, player_id: int):
 
     x, y, z = target.get_pos()
     target.set_pos(x, y, z+5.0)
-    return player.send_notification_message(f"Вы подбросили игрока {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}}.")
+    return player.send_message(f"Вы подбросили игрока {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}}.")
 
 @cmd
 @Player.using_registry
@@ -1185,7 +1185,7 @@ def freeze(player: Player, player_id: int):
         return player.send_error_message("Игрок не найден!")
 
     target.toggle_controllable(False)
-    return player.send_notification_message(f"Вы заморозили игрока {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}}.")
+    return player.send_message(f"Вы заморозили игрока {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}}.")
 
 @cmd
 @Player.using_registry
@@ -1211,7 +1211,7 @@ def unfreeze(player: Player, player_id: int):
         return player.send_error_message("Игрок не найден!")
 
     target.toggle_controllable(True)
-    return player.send_notification_message(f"Вы разморозили игрока {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}}.")
+    return player.send_message(f"Вы разморозили игрока {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}}.")
 
 @cmd
 @Player.using_registry
@@ -1304,7 +1304,7 @@ def getip(player: Player, player_id: int):
     if not target.is_connected():
         return player.send_error_message("Игрок не найден!")
 
-    return player.send_notification_message(f"IP игрока {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}} - {{{Colors.cmd_hex}}}{target.get_ip()}{{{Colors.white_hex}}}.")
+    return player.send_message(f"IP игрока {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}} - {{{Colors.cmd_hex}}}{target.get_ip()}{{{Colors.white_hex}}}.")
 
 @cmd
 @Player.using_registry
@@ -1339,8 +1339,8 @@ def givegun(player: Player, player_id: int, weapon_id: int, ammo: int = 100):
         return player.send_error_message("Игрок не найден!")
 
     target.give_weapon(target_weapon_id, target_ammo)
-    target.send_notification_message(f"Администратор {{{Colors.cmd_hex}}}{player.name}[{player.id}]{{{Colors.white_hex}}} выдал Вам оружие.")
-    return player.send_notification_message(f"Вы выдали оружие игроку {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}}.")
+    target.send_message(f"Администратор {{{Colors.cmd_hex}}}{player.name}[{player.id}]{{{Colors.white_hex}}} выдал Вам оружие.")
+    return player.send_message(f"Вы выдали оружие игроку {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}}.")
 
 @cmd
 @Player.using_registry
@@ -1369,8 +1369,9 @@ def sethp(player: Player, player_id: int, health: float):
         return player.send_error_message("Игрок не найден!")
 
     target.set_health(target_health)
-    target.send_notification_message(f"Администратор {{{Colors.cmd_hex}}}{player.name}[{player.id}]{{{Colors.white_hex}}} изменил Вам значение HP.")
-    return player.send_notification_message(f"Вы изменили значение HP игроку {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}}.")
+    target.send_message(f"Администратор {{{Colors.cmd_hex}}}{player.name}[{player.id}]{{{Colors.white_hex}}} изменил Вам значение HP.")
+    Freeroam.set_spawn_info_for_player(target)
+    return player.send_message(f"Вы изменили значение HP игроку {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}}.")
 
 @cmd
 @Player.using_registry
@@ -1399,7 +1400,7 @@ def amusic(player: Player, player_id: int, url: str, distance: float = 5.0):
         return player.send_error_message("Игрок не найден!")
 
     target.play_audio_stream(url, *target.get_pos(), distance=target_distance)
-    return player.send_notification_message(f"Вы включили аудио для игрока {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}}.")
+    return player.send_message(f"Вы включили аудио для игрока {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}}.")
 
 @cmd
 @Player.using_registry
@@ -1422,7 +1423,7 @@ def stopamusic(player: Player, player_id: int):
         return player.send_error_message("Игрок не найден!")
 
     target.stop_audio_stream()
-    return player.send_notification_message(f"Вы выключили аудио для игрока {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}}.")
+    return player.send_message(f"Вы выключили аудио для игрока {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}}.")
 
 @cmd
 @Player.using_registry
@@ -1445,7 +1446,7 @@ def deleteplayer(player: Player, player_name: str):
         return player.send_error_message("Игрок не найден!")
 
     DataBase.save_player_name(target_name, is_banned=True)
-    return player.send_notification_message(f"Вы удалили аккаунт игрока {{{Colors.cmd_hex}}}{target_name}{{{Colors.white_hex}}}.")
+    return player.send_message(f"Вы удалили аккаунт игрока {{{Colors.cmd_hex}}}{target_name}{{{Colors.white_hex}}}.")
 
 @cmd
 @Player.using_registry
@@ -1477,11 +1478,11 @@ def setvip(player: Player, player_id: int, level: int):
         return player.send_error_message("Игрок не найден!")
 
     target.vip.level = target_level - 1
-    target.send_notification_message(
+    target.send_message(
         f"Администратор {{{Colors.cmd_hex}}}{player.name}[{player.id}]{{{Colors.white_hex}}} изенил Ваш уровень VIP на {{{VIPData.colors[target.vip.level]}}}{VIPData.names[target.vip.level]}{{{Colors.white_hex}}}."
     )
     send_client_message_to_all(Colors.ad, f"{target.name}[{target.id}] получил {{{VIPData.colors[target.vip.level]}}}{VIPData.names[target.vip.level]} VIP{{{Colors.ad_hex}}}!")
-    return player.send_notification_message(f"Вы изменили значение VIP игроку {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}} на {{{VIPData.colors[target.vip.level]}}}{VIPData.names[target.vip.level]}{{{Colors.white_hex}}}.")
+    return player.send_message(f"Вы изменили значение VIP игроку {{{Colors.cmd_hex}}}{target.name}[{target.id}]{{{Colors.white_hex}}} на {{{VIPData.colors[target.vip.level]}}}{VIPData.names[target.vip.level]}{{{Colors.white_hex}}}.")
 
 @cmd
 @Player.using_registry
@@ -1527,7 +1528,7 @@ def setgangzone(player: Player, gangzone_id: int, gang_id: int):
         if player_gw.mode == ServerMode.gangwar_world:
             player_gw.reload_gangzones_for_player()
 
-    return player.send_notification_message(f"Гангзона обновлена!")
+    return player.send_message(f"Гангзона обновлена!")
 
 @cmd
 @Player.using_registry
@@ -1627,8 +1628,8 @@ def pay(player: Player, player_id: int, amount: int):
 
     player.set_money_ex(target_amount, increase=False)
     target.set_money_ex(target_amount)
-    target.send_notification_message(f"Игрок {{{Colors.cmd_hex}}}{player.name}[{player.id}]{{{Colors.white_hex}}} передал Вам {{{Colors.green_hex}}}{amount}${{{Colors.white_hex}}}.")
-    return player.send_notification_message(f"Вы передали {{{Colors.green_hex}}}{target_amount}${{{Colors.white_hex}}} игроку {{{Colors.cmd_hex}}}{player.name}[{player.id}]{{{Colors.white_hex}}}.")
+    target.send_message(f"Игрок {{{Colors.cmd_hex}}}{player.name}[{player.id}]{{{Colors.white_hex}}} передал Вам {{{Colors.green_hex}}}{amount}${{{Colors.white_hex}}}.")
+    return player.send_message(f"Вы передали {{{Colors.green_hex}}}{target_amount}${{{Colors.white_hex}}} игроку {{{Colors.cmd_hex}}}{player.name}[{player.id}]{{{Colors.white_hex}}}.")
 
 @cmd_ex(
     cmd,
@@ -1800,7 +1801,7 @@ def sultan(player: Player, color_one: int, color_two: int):
     )
     player_veh.set_info(owner=player.get_name())
     player.update_vehicle_inst(player_veh)
-    player.put_in_vehicle(player.vehicle.inst.id, 0)
+    player.put_in_vehicle(player.player_vehicle, 0)
 
 @cmd_ex(
     cmd(aliases=("tp", "t")),
@@ -1835,12 +1836,12 @@ def flip(player: Player):
     if not player.is_in_any_vehicle():
         return player.send_error_message("Вы должны находиться в транспорте!")
 
-    veh = Vehicle.from_registry_native(player.vehicle)
+    veh = Vehicle.from_registry_native(player.player_vehicle)
     x, y, z = veh.get_position()
     angle = veh.get_z_angle()
     veh.set_position(x, y, z+1.5)
     veh.set_z_angle(angle)
-    return player.send_notification_message("Транспорт был перевёрнут.")
+    return player.send_message("Транспорт был перевёрнут.")
 
 @cmd_ex(
     cmd(aliases=("vt", "tune")),
@@ -1916,7 +1917,7 @@ def buyhouse(player: Player):
     player.money -= player.house.price
     player.settings.spawn_in_house = True
     player.house.set_owner(player.name)
-    return player.send_notification_message(f"Вы купили дом {{{Colors.cmd_hex}}}№{player.house.uid}{{{Colors.white_hex}}}!")
+    return player.send_message(f"Вы купили дом {{{Colors.cmd_hex}}}№{player.house.uid}{{{Colors.white_hex}}}!")
 
 @cmd_ex(
     cmd,
@@ -1996,7 +1997,7 @@ def class_(player: Player):
     player.force_class_selection()
     player.toggle_spectating(True)
     player.toggle_spectating(False)
-    return player.send_notification_message("Выберите скин.")
+    return player.send_message("Выберите скин.")
 
 @cmd_ex(
     cmd,
@@ -2009,7 +2010,7 @@ def cclear(player: Player):
         return player.send_error_message("Не флудите!")
 
     for _ in range(30):
-        player.send_notification_message(" ")
+        player.send_message(" ")
 
 @cmd_ex(
     cmd,
@@ -2121,7 +2122,7 @@ def startwar(player: Player):
         return player.send_error_message("В данный момент на сервере достигнут лимит захвата!")
 
     if gangzone.squad_id == -1:
-        player.send_notification_message("Территория была автоматически захвачена.")
+        player.send_message("Территория была автоматически захвачена.")
         gangzone.update(squad_id=player.squad.uid, color=player.squad.color)
         for p in Player._registry.values():
             if p.mode != ServerMode.freeroam_world:

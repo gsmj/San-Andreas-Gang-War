@@ -27,7 +27,7 @@ from .libs.squad.squad import Squad, SquadGangZone, squad_gangzone_pool, squad_p
 from .libs.static.gangzones import create_gangzones
 from .libs.static.labels import create_labels
 from .libs.static.textdraws import create_textdraws
-from .libs.utils.consts import NO_HOUSE_OWNER, NO_VEHICLE_OWNER, ID_NONE
+from .libs.utils.consts import NO_VEHICLE_OWNER
 from .libs.utils.data import *
 from .player import Player
 from .vehicle import Vehicle

@@ -197,7 +197,7 @@ class Jail:
         player.set_pos(5509.365234, 1245.812866, 8.000000)
         cls.set_spawn_info_for_player(player)
         player.reset_weapons()
-        player.send_notification_message(f"Вы выйдите из деморгана через {{{Colors.cmd_hex}}}{player.time.jail}{{{Colors.white_hex}}} минут.")
+        player.send_message(f"Вы выйдите из деморгана через {{{Colors.cmd_hex}}}{player.time.jail}{{{Colors.white_hex}}} минут.")
         if player.timers.jail_id == TIMER_ID_NONE:
             player.timers.jail_id = set_timer(player.timer_for_player, int(player.time.jail * 60000), False)
 
@@ -216,7 +216,7 @@ class Jail:
 
     @staticmethod
     def timer_for_player(player: Player) -> None:
-        player.send_notification_message("Вас выпустили из деморгана.")
+        player.send_message("Вас выпустили из деморгана.")
         player.checks.jailed = False
         player.time.jail = 0
         player.timers.jail_id = TIMER_ID_NONE
@@ -264,7 +264,7 @@ class DeathMatch:
             i = randint(0, len(DeathMatchSpawns.spawns[player.mode]) - 1)
             player.set_pos(DeathMatchSpawns.spawns[player.mode][i][0], DeathMatchSpawns.spawns[player.mode][i][1], DeathMatchSpawns.spawns[player.mode][i][2])
             player.set_facing_angle(DeathMatchSpawns.spawns[player.mode][i][3])
-            return player.send_notification_message("Вы были перемещены!")
+            return player.send_message("Вы были перемещены!")
 
     @staticmethod
     def set_spawn_info_for_player(player: Player):
@@ -357,8 +357,9 @@ class Freeroam:
         GangWar.hide_capture_textdraws(player)
         DeathMatch.hide_gangzones_for_player(player)
         DeathMatch.disable_timer_for_player(player)
+        Squad.show_squad_gangzones_for_player(player)
+        player.set_spawn_protection_timer()
         if player.squad:
-            Squad.show_squad_gangzones_for_player(player)
             player.set_color_ex(player.squad.color)
             if player.squad.is_capturing:
                 gz = squad_gangzone_pool[player.squad.capture_id]
@@ -412,6 +413,7 @@ class GangWar:
         DeathMatch.disable_timer_for_player(player)
         Squad.hide_capture_textdraws(player)
         Squad.disable_gangzones_for_player(player)
+        player.set_spawn_protection_timer()
         player.set_pos(player.gang.spawn_pos[0], player.gang.spawn_pos[1], player.gang.spawn_pos[2])
         player.set_camera_behind()
         player.set_interior(player.gang.interior_id)
@@ -469,10 +471,10 @@ class GangWar:
     @classmethod
     def send_capture_message(cls, initiator: Player, player: Player) -> None:
         _capt = cls.capture_dict[initiator.name]
-        player.send_notification_message(
+        player.send_message(
             f"{{{gangs[_capt[1]].color_hex}}}{initiator.name}{{{Colors.white_hex}}} инициировал захват территории {{{Colors.cmd_hex}}}{_capt[4]}{{{Colors.white_hex}}}!"
         )
-        player.send_notification_message(
+        player.send_message(
             f"Началась война между {{{gangs[_capt[1]].color_hex}}}{gangs[_capt[1]].gang_name}{{{Colors.white_hex}}} и {{{gangs[_capt[2]].color_hex}}}{gangs[_capt[2]].gang_name}{{{Colors.white_hex}}}!"
         )
 
@@ -497,7 +499,7 @@ class GangWar:
 
             if (player.gang_id == gz.gang_atk_id) or (player.gang_id == gz.gang_def_id):
                 player.set_team(player.gang_id)
-                player.send_notification_message("Во время войны урон по своим был отключён!")
+                player.send_message("Во время войны урон по своим был отключён!")
                 gang_zone_flash_for_player(player.id, gz.id, gangs[gz.gang_atk_id].color)
                 GangWar.show_capture_textdraws_for_player(player)
 
@@ -523,8 +525,8 @@ class GangWar:
 
             if (player.gang_id == gangzone.gang_atk_id) or (player.gang_id == gangzone.gang_def_id):
                 player.set_team(255)
-                player.send_notification_message(f"Банда {{{gangs[gangzone.gang_atk_id].color_hex}}}{gangs[gangzone.gang_atk_id].gang_name}{{{Colors.white_hex}}} {'захватила' if win else 'не смогла захватить'} территорию!")
-                player.send_notification_message(f"Счёт: {{{gangs[gangzone.gang_atk_id].color_hex}}}{gangzone.gang_atk_score}{{{Colors.white_hex}}} - {{{gangs[gangzone.gang_def_id].color_hex}}}{gangzone.gang_def_score}{{{Colors.white_hex}}}.")
+                player.send_message(f"Банда {{{gangs[gangzone.gang_atk_id].color_hex}}}{gangs[gangzone.gang_atk_id].gang_name}{{{Colors.white_hex}}} {'захватила' if win else 'не смогла захватить'} территорию!")
+                player.send_message(f"Счёт: {{{gangs[gangzone.gang_atk_id].color_hex}}}{gangzone.gang_atk_score}{{{Colors.white_hex}}} - {{{gangs[gangzone.gang_def_id].color_hex}}}{gangzone.gang_def_score}{{{Colors.white_hex}}}.")
                 GangWar.hide_capture_textdraws(player)
                 gang_zone_stop_flash_for_player(player.id, gangzone.id)
                 GangWar.reload_gangzones_for_player(player)

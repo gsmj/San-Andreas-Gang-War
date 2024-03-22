@@ -1,6 +1,5 @@
 import importlib
 
-from pysamp import call_native_function, call_remote_function
 from pysamp.commands import cmd
 from pysamp.dialog import Dialog
 
@@ -24,7 +23,7 @@ def pcache(player: Player, player_id: int, key: str, value: str):
 
     player_ = Player.from_registry_native(int(player_id))
     player_.cache[key] = value
-    return player.send_notification_message("Кэш обновлён!")
+    return player.send_message("Кэш обновлён!")
 
 @cmd_ex(
     cmd,
@@ -47,7 +46,7 @@ def hdata(player: Player):
         "Закрыть",
         ""
     ).show(player)
-    return player.send_notification_message(f"Всего домов: {len(houses)}")
+    return player.send_message(f"Всего домов: {len(houses)}")
 
 @cmd_ex(
     cmd,
@@ -70,7 +69,7 @@ def gdata(player: Player):
         "Закрыть",
         ""
     ).show(player)
-    return player.send_notification_message(f"Всего гангзон: {len(gangzone_pool)}")
+    return player.send_message(f"Всего гангзон: {len(gangzone_pool)}")
 
 
 @cmd_ex(
@@ -88,7 +87,7 @@ def pdata(player: Player, player_id: int):
     for attr, value in vars(player_).items():
         content += f"{attr}: {value}\n"
 
-        player.send_notification_message(f"{attr} {value}")
+        player.send_message(f"{attr} {value}")
         print(f"{attr} | {value}")
 
 @cmd_ex(
@@ -106,7 +105,7 @@ def vdata(player: Player):
     for attr, value in vehicles.items():
         content += f"{attr}: {value}\n"
 
-        player.send_notification_message(f"{attr} {value}")
+        player.send_message(f"{attr} {value}")
 
 @cmd_ex(
     cmd,
@@ -119,4 +118,4 @@ def pvdata(player: Player, player_id: int):
         return
 
     player_ = Player.from_registry_native(int(player_id))
-    player.send_notification_message(f"{player_.player_vehicle}")
+    player.send_message(f"{player_.player_vehicle}")

@@ -61,6 +61,7 @@ class PlayerChecks:
     wearing_mask: bool = False
     saw_bottom_textdraw: bool = False
     in_house: bool = False
+    invulnerable: bool = False
 
 
 @dataclass(repr=False)
