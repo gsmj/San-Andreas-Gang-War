@@ -2,7 +2,7 @@ import time
 from datetime import datetime
 from functools import wraps
 from math import sqrt
-from typing import Literal
+from typing import Literal, Union
 from zoneinfo import ZoneInfo
 
 from samp import (INVALID_PLAYER_ID, PLAYER_STATE_DRIVER,  # type: ignore
@@ -155,7 +155,7 @@ class Player(BasePlayer):
         vehicle.player_vehicles[self.id] = vehicle
 
     @property
-    def player_vehicle(self) -> Vehicle | bool:
+    def player_vehicle(self) -> Union[Vehicle, bool]:
         try:
             return Vehicle.player_vehicles[self.id]
         except:
