@@ -29,7 +29,7 @@ from .libs.house.house import (House, houses_by_owner, houses_by_pickup,
                                interiors)
 from .libs.misc.playerdata import *
 from .libs.modes.modes import DeathMatch, Freeroam, GangWar, Jail
-from .libs.squad.squad import (Squad, squad_gangzone_pool, squad_pool, squad_capture_dict,
+from .libs.squad.squad import (Squad, squad_gangzone_pool, squad_capture_dict,
                                squad_pool_id, squad_permissions_converter)
 from .libs.static import playertextdraws, textdraws
 from .libs.utils.consts import *
@@ -2645,7 +2645,6 @@ class Dialogs:
             player.cache["CREATE_SQUAD_DATA"][4]["color_hex"]
         )
         player.squad = squad
-        Squad.show_squad_gangzones_for_player(player)
         player.send_message(
             f"Вы успешно создали фракцию: {{{squad.color_hex}}}{player.squad.name}{{{Colors.white_hex}}}!"
         )
@@ -2736,6 +2735,8 @@ class Dialogs:
                 "1. Переименовать фракцию\n"
                 "2. Изменить тег фракции\n"
                 "3. Изменить тип фракции\n"
+                "4. Изменить цвет фракции\n"
+                "5. Удалить фракцию"
             ),
             "Ок",
             "Закрыть",
@@ -2760,8 +2761,11 @@ class Dialogs:
         if list_item == 2:
             return cls.show_squad_change_type_dialog(player)
 
-        # if list_item == 3:
-        #     return cls.show_squad_change_color_dialog(player)
+        if list_item == 3:
+            return cls.show_squad_change_color_dialog(player)
+
+        if list_item == 4:
+            return cls.show_squad_delete_dialog(player)
 
     @classmethod
     def show_squad_change_name_dialog(cls, player: Player) -> None:
@@ -3275,6 +3279,7 @@ class Dialogs:
         rank: str = player.cache["SQUAD_INVITE_SENT_BY"][1]
         owner.squad.create_member(player.name, rank)
         player.squad = owner.squad
+        player.set_color_ex(player.squad.color)
         player.send_message(f"Вы вступили во фракцию {{{player.squad.color_hex}}}{player.squad.name}{{{Colors.white_hex}}}.")
         del player.cache["SQUAD_INVITE_SENT_BY"]
         p = player.cache["SQUAD_INVITE_SENT_BY"][0]
@@ -3330,3 +3335,76 @@ class Dialogs:
         capture_id: int = squad_capture_dict[player.name][3]
         gangzone_class = squad_gangzone_pool[capture_id]
         return gangzone_class.start_war(player, squad_atk, squad_def, Player._registry)
+
+    @classmethod
+    def show_squad_change_color_dialog(cls, player: Player) -> None:
+        player = Player.from_registry_native(player)
+        color_str = ""
+        for key, value in Colors.clist_hex.items():
+            color_str += f"{{{value}}}{player.squad.tag}\n"
+
+        return Dialog.create(
+            2, "Выбор цвета",
+            color_str,
+            "Ок",
+            "Закрыть",
+            on_response=cls.squad_change_color_response
+        ).show(player)
+
+    @classmethod
+    def squad_change_color_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            return
+
+        player.squad.update(
+            color=Colors.clist_rgba[list_item],
+            color_hex=Colors.clist_hex[list_item]
+        )
+        for squad_player in Player._registry.values():
+            if squad_player.mode != ServerMode.freeroam_world:
+                continue
+
+            if player.squad.uid == squad_player.squad.uid:
+                squad_player.set_color_ex(player.squad.color)
+
+            Squad.reload_gangzones_for_player(
+                squad_player,
+                squad_id=player.squad.uid,
+                color=player.squad.color,
+                update_color=True
+            )
+
+        return player.send_message(
+            f"Вы изменили {{{player.squad.color_hex}}}цвет{{{Colors.white_hex}}} фракции!"
+        )
+
+    @classmethod
+    def show_squad_delete_dialog(cls, player: Player) -> None:
+        player = Player.from_registry_native(player)
+        return Dialog.create(
+            0, "Удаление фракции",
+            "Вы уверены, что хотите удалить фракцию?",
+            "Да",
+            "Нет",
+            on_response=cls.squad_delete_response
+        ).show(player)
+
+    @classmethod
+    def squad_delete_response(cls, player: Player, response: int, list_item: int, input_text: str) -> None:
+        player = Player.from_registry_native(player)
+        if not response:
+            return
+
+        Squad.delete_squad(player.squad)
+        for squad_player in Player._registry.values():
+            if squad_player.mode != ServerMode.freeroam_world:
+                continue
+
+            if player.squad.uid == squad_player.squad.uid:
+                squad_player.squad = None
+
+            Squad.reload_gangzones_for_player(squad_player)
+        return player.send_message(
+            f"Вы удалили фракцию."
+        )

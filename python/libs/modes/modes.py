@@ -14,7 +14,7 @@ from ..house.house import interiors
 from ..static import gangzones
 from ..static.textdraws import capture_td
 from ..utils.consts import TIMER_ID_NONE
-from ..squad.squad import Squad, squad_gangzone_pool
+from ..squad.squad import Squad, squad_gangzone_pool, squad_gangzone_positions
 from ..utils.data import Colors, ServerMode, convert_seconds, get_center
 
 
@@ -336,6 +336,17 @@ class Freeroam:
 
     @staticmethod
     def set_spawn_info_for_player(player: Player) -> None:
+        if player.squad and player.squad.is_capturing:
+            x, y, z = random.choice(squad_gangzone_positions[player.squad.capture_id])
+            return player.set_spawn_info(
+                player.squad,
+                player.skin,
+                x,
+                y,
+                z,
+                90.0,
+                0, 0, 0, 0, 0, 0)
+
         i = randint(0, len(RandomSpawns.spawns) - 1)
         player.set_spawn_info(
             255,

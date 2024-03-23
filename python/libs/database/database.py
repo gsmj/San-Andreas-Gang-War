@@ -722,6 +722,15 @@ class DataBase():
             session.execute(delete(Squad).where(Squad.uid == squad_id))
             session.execute(delete(SquadMember).where(SquadMember.squad_id == squad_id))
             session.execute(delete(SquadRank).where(SquadRank.squad_id == squad_id))
+            session.execute(delete(SquadRankPermissions).where(SquadRankPermissions.squad_id == squad_id))
+            session.commit()
+
+        with cls.Session() as session:
+            gangzones = session.execute(select(SquadGangZones).where(SquadGangZones.squad_id == squad_id)).scalars().all()
+            for gangzone in gangzones:
+                gangzone.squad_id = -1
+
+            session.commit()
 
     @classmethod
     def save_squad(cls, squad_uid: int, **kwargs: dict) -> None:

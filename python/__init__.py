@@ -23,7 +23,7 @@ from .libs.fun.math import MathTest
 from .libs.gang.gang import GangZoneData, gangzone_pool
 from .libs.house.house import House, houses
 from .libs.modes.modes import GangWar
-from .libs.squad.squad import Squad, SquadGangZone, squad_gangzone_pool, squad_pool
+from .libs.squad.squad import Squad, SquadGangZone, squad_gangzone_pool, squad_pool_id
 from .libs.static.gangzones import create_gangzones
 from .libs.static.labels import create_labels
 from .libs.static.textdraws import create_textdraws
@@ -143,7 +143,7 @@ def on_ready():
 
     print(f"Loaded: {len(gangzone_pool)} gangzones")
     print(f"Loaded: {len(squad_gangzone_pool)} squad gangzones")
-    print(f"Loaded: {len(squad_pool)} squads")
+    print(f"Loaded: {len(squad_pool_id)} squads")
     print(f"Loaded: {len(Vehicle._registry.items())} vehicles")
     print(f"Loaded: {len(houses)} houses")
     print("--------------------------------------------------")
