@@ -1,5 +1,5 @@
 global DEBUG
-DEBUG = True
+DEBUG = False
 TIMER_ID_NONE: int = -1
 SLOT_ID_NONE: int = -1
 NO_VEHICLE_OWNER: str = ""
