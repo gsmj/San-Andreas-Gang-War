@@ -352,6 +352,9 @@ def vbuy(player: Player):
     if not player.check_player_mode([ServerMode.freeroam_world]):
         return
 
+    if player.squad and player.squad.is_capturing:
+        return player.send_error_message("Во время войны за территорию эта команда недоступна!")
+
     if player.vip.level == -1:
         return player.send_error_message("У Вас нет VIP статуса!")
 
@@ -401,6 +404,9 @@ def jp(player: Player):
 
     if not player.check_player_mode([ServerMode.freeroam_world]):
         return
+
+    if player.squad and player.squad.is_capturing:
+        return player.send_error_message("Во время войны за территорию эта команда недоступна!")
 
     if player.vip.level == -1:
         return player.send_error_message("У Вас нет VIP статуса!")
@@ -693,6 +699,9 @@ def weapons(player: Player):
 
     if not player.check_player_mode([ServerMode.freeroam_world]):
         return
+
+    if player.squad and player.squad.is_capturing:
+        return player.send_error_message("Во время войны за территорию эта команда недоступна!")
 
     return Dialogs.show_weapons_dialog(player)
 
@@ -1071,6 +1080,9 @@ def armour(player: Player):
 
     if not player.check_player_mode([ServerMode.freeroam_world]):
         return
+
+    if player.squad and player.squad.is_capturing:
+        return player.send_error_message("Во время войны за территорию эта команда недоступна!")
 
     player.set_armour(100.0)
     return player.send_message(f"Значение AR восстановлено до {{{Colors.cmd_hex}}}100{{{Colors.white_hex}}}.")
@@ -1588,6 +1600,9 @@ def vehicles(player: Player):
     if not player.check_player_mode([ServerMode.freeroam_world]):
         return
 
+    if player.squad and player.squad.is_capturing:
+        return player.send_error_message("Во время войны за территорию эта команда недоступна!")
+
     return Dialogs.show_vehicles_dialog(player)
 
 @cmd_ex(
@@ -1644,6 +1659,9 @@ def elegy(player: Player, color_one: int, color_two: int):
     if not player.check_player_mode([ServerMode.freeroam_world]):
         return
 
+    if player.squad and player.squad.is_capturing:
+        return player.send_error_message("Во время войны за территорию эта команда недоступна!")
+
     if player.money - 5000 < 0:
         return player.send_error_message(f"Вам не хватает {{{Colors.cmd_hex}}}{5000 - player.money}${{{Colors.red_hex}}}!")
 
@@ -1686,6 +1704,9 @@ def infernus(player: Player, color_one: int, color_two: int):
 
     if not player.check_player_mode([ServerMode.freeroam_world]):
         return
+
+    if player.squad and player.squad.is_capturing:
+        return player.send_error_message("Во время войны за территорию эта команда недоступна!")
 
     if player.money - 5000 < 0:
         return player.send_error_message(f"Вам не хватает {{{Colors.cmd_hex}}}{5000 - player.money}${{{Colors.red_hex}}}!")
@@ -1730,6 +1751,9 @@ def bullet(player: Player, color_one: int, color_two: int):
     if not player.check_player_mode([ServerMode.freeroam_world]):
         return
 
+    if player.squad and player.squad.is_capturing:
+        return player.send_error_message("Во время войны за территорию эта команда недоступна!")
+
     if player.money - 5000 < 0:
         return player.send_error_message(f"Вам не хватает {{{Colors.cmd_hex}}}{5000 - player.money}${{{Colors.red_hex}}}!")
 
@@ -1772,6 +1796,9 @@ def sultan(player: Player, color_one: int, color_two: int):
 
     if not player.check_player_mode([ServerMode.freeroam_world]):
         return
+
+    if player.squad and player.squad.is_capturing:
+        return player.send_error_message("Во время войны за территорию эта команда недоступна!")
 
     if player.money - 5000 < 0:
         return player.send_error_message(f"Вам не хватает {{{Colors.cmd_hex}}}{5000 - player.money}${{{Colors.red_hex}}}!")
@@ -1832,6 +1859,9 @@ def flip(player: Player):
     if not player.check_player_mode([ServerMode.freeroam_world]):
         return
 
+    if player.squad and player.squad.is_capturing:
+        return player.send_error_message("Во время войны за территорию эта команда недоступна!")
+
     if not player.is_in_any_vehicle():
         return player.send_error_message("Вы должны находиться в транспорте!")
 
@@ -1856,6 +1886,9 @@ def tuning(player: Player):
     if not player.check_player_mode([ServerMode.freeroam_world]):
         return
 
+    if player.squad and player.squad.is_capturing:
+        return player.send_error_message("Во время войны за территорию эта команда недоступна!")
+
     if not player.is_in_any_vehicle():
         return player.send_error_message("Вы должны находиться в транспорте!")
 
@@ -1874,6 +1907,9 @@ def clist(player: Player):
 
     if not player.check_player_mode([ServerMode.freeroam_world]):
         return
+
+    if player.squad and player.squad.is_capturing:
+        return player.send_error_message("Во время войны за территорию эта команда недоступна!")
 
     return Dialogs.show_clist_dialog(player)
 
@@ -1904,6 +1940,12 @@ def buyhouse(player: Player):
     if not player.check_cooldown(1.5):
         return player.send_error_message("Не флудите!")
 
+    if not player.check_player_mode([ServerMode.freeroam_world]):
+        return
+
+    if player.squad and player.squad.is_capturing:
+        return player.send_error_message("Во время войны за территорию эта команда недоступна!")
+
     if not player.checks.in_house:
         return player.send_error_message("Вы не находитесь в доме!")
 
@@ -1931,6 +1973,9 @@ def house(player: Player):
 
     if not player.check_player_mode([ServerMode.freeroam_world]):
         return
+
+    if player.squad and player.squad.is_capturing:
+        return player.send_error_message("Во время войны за территорию эта команда недоступна!")
 
     if not player.house:
         return player.send_error_message("У Вас нет дома!")
@@ -1985,6 +2030,9 @@ def class_(player: Player):
 
     if not player.check_player_mode([ServerMode.freeroam_world]):
         return
+
+    if player.squad and player.squad.is_capturing:
+        return player.send_error_message("Во время войны за территорию эта команда недоступна!")
 
     if player.is_in_any_vehicle():
         return player.send_error_message("Выйдите из транспорта!")
