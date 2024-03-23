@@ -198,10 +198,12 @@ class Player(BasePlayer):
     def send_message(self, message: str) -> None:
         return self.send_client_message(Colors.white, f"{message}")
 
-    def send_debug_message(self, event: str, message: str) -> bool:
-        if DEBUG:
-            self.send_client_message(Colors.blue, f"{event}")
-            self.send_client_message(Colors.light_grey, f"{message}")
+    def send_debug_message(self, message: str, level: Literal[1, 2]) -> None:
+        """
+        Level 1: Info
+        Level 2: Warning
+        """
+        return self.send_client_message(Colors.blue if level == 1 else Colors.red, f"{'[INFO]' if level == 1 else '[WARNING]'}: {message}")
 
     def send_report_message(self, author: "Player", message: str) -> None:
         for player in self._registry.values():

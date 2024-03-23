@@ -523,10 +523,9 @@ def capture(player: Player):
             if p.mode != ServerMode.gangwar_world:
                 continue
 
-            if p.gang == -1:
-                continue
+            GangWar.reload_gangzones_for_player(p)
 
-            return GangWar.reload_gangzones_for_player(p)
+        return
 
     if total_captures == ServerInfo.CAPTURE_LIMIT:
         return player.send_error_message("В данный момент на сервере достигнут лимит захвата!")
@@ -2128,10 +2127,9 @@ def startwar(player: Player):
             if p.mode != ServerMode.freeroam_world:
                 continue
 
-            if not p.squad:
-                continue
+            Squad.reload_gangzones_for_player(p)
 
-            return Squad.reload_gangzones_for_player(p)
+        return
 
     if player.squad.is_capturing or squad_pool_id[gangzone.squad_id].is_capturing:
         return player.send_error_message("Одна из банд уже ведёт захват территории!")

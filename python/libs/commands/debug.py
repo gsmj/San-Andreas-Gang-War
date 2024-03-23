@@ -8,6 +8,7 @@ from ...vehicle import Vehicle
 from ..gang.gang import gangzone_pool
 from ..house.house import houses
 from ..squad.squad import squad_gangzone_pool
+from ..utils.data import ZoneNames
 from .cmd_ex import CommandType, cmd_ex
 
 
@@ -119,3 +120,21 @@ def pvdata(player: Player, player_id: int):
 
     player_ = Player.from_registry_native(int(player_id))
     player.send_message(f"{player_.player_vehicle}")
+
+@cmd_ex(
+    cmd,
+    description="Сохранение позиции и ID гангзоны",
+    mode=CommandType.admin_type
+)
+@Player.using_registry
+def sgz(player: Player):
+    player.send_debug_message("Используйте команду только когда Вы находитесь в гангзоне", 2)
+    for gz_id, gangzone in squad_gangzone_pool.items():
+        if player.is_in_area(gangzone.min_x, gangzone.min_y, gangzone.max_x, gangzone.max_y):
+            break
+
+    x, y, z = player.get_pos()
+    with open("squadpositions.txt", mode="a") as f:
+        f.write(f"{x}, {y}, {z} | ID: {gz_id} | Name: {ZoneNames.names[gz_id]}\n")
+
+    return player.send_message(f"ID гангзоны: {gz_id} | Название: {ZoneNames.names[gz_id]}")

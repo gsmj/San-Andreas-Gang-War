@@ -33,7 +33,6 @@ from .player import Player
 from .vehicle import Vehicle
 encode()
 
-
 @Core.on_init
 def on_ready():
     DataBase.create_metadata()
