@@ -11,7 +11,7 @@ from samp import (INVALID_PLAYER_ID, PLAYER_STATE_DRIVER,  # type: ignore
 from pydpc.driftcounter.drift import Drift
 from pysamp import (call_remote_function, create_player_3d_text_label,
                     delete_player_3d_text_label, kick, send_client_message,
-                    send_client_message_to_all)
+                    send_client_message_to_all, get_player_version)
 from pysamp.dialog import Dialog
 from pysamp.player import Player as BasePlayer
 from pysamp.playertextdraw import PlayerTextDraw
@@ -156,10 +156,10 @@ class Player(BasePlayer):
 
     @property
     def player_vehicle(self) -> Union[Vehicle, bool]:
-        try:
-            return Vehicle.player_vehicles[self.id]
-        except:
+        if not self.id in Vehicle.player_vehicles:
             return False
+
+        return Vehicle.player_vehicles[self.id]
 
     def remove_player_vehicle(self) -> None:
         del Vehicle.player_vehicles[self.id]
@@ -197,6 +197,14 @@ class Player(BasePlayer):
 
     def send_message(self, message: str) -> None:
         return self.send_client_message(Colors.white, f"{message}")
+
+    def send_outdated_client_warning(self) -> None:
+        if get_player_version(self.id) != "0.3.7-R5" and not self.settings.outdated_version_warning:
+            self.send_client_message(Colors.red, "Вы используете устаревший клиент SA:MP!")
+            self.send_client_message(Colors.red, "Для Вашей собственной безопасности рекомедуется установить:")
+            self.send_client_message(Colors.red, f"- SA:MP 0.3.7-R5 {{{Colors.link_hex}}}sa-mp.mp/{{{Colors.red_hex}}}.")
+            self.send_client_message(Colors.red, f"- SA:MP Addon {{{Colors.link_hex}}}gtaforums.com/topic/760017-samp-addon/{{{Colors.red_hex}}}.")
+            self.send_client_message(Colors.red, f"- Open.mp launcher (R5) {{{Colors.link_hex}}}github.com/openmultiplayer/launcher{{{Colors.red_hex}}}.")
 
     def send_debug_message(self, message: str, level: Literal[1, 2]) -> None:
         """
@@ -399,14 +407,15 @@ class Player(BasePlayer):
         self.checks.banned=player_db.is_banned
         self.time.jail=player_db.jail_time
         self.time.mute=player_db.mute_time
-        self.settings.disabled_ping_td=player_settings.disabled_ping_td
-        self.settings.disabled_global_chat_gw=player_settings.disabled_global_chat_gw
-        self.settings.spawn_in_house=player_settings.spawn_in_house
-        try:
-            houses_by_owner[self.name]
+
+        self.settings.disabled_ping_td = player_settings.disabled_ping_td
+        self.settings.disabled_global_chat_gw = player_settings.disabled_global_chat_gw
+        self.settings.spawn_in_house = player_settings.spawn_in_house
+        self.settings.outdated_version_warning = player_settings.outdated_version_warning
+        self.settings.use_squad_tag_in_text = player_settings.use_squad_tag_in_text
+
+        if self.name in houses_by_owner:
             self.house = houses_by_owner[self.name]
-        except:
-            pass
 
         if player_squad:
             self.squad = squad_pool_id[player_squad.squad_id]
@@ -417,6 +426,7 @@ class Player(BasePlayer):
         self.set_score(self.score)
         Freeroam.update_gun_slots_for_player(self, DataBase.get_player_freeroam_gun_slots(self))
         send_client_message_to_all(Colors.white, f"Игрок {{{Colors.cmd_hex}}}{self.name}[{self.id}]{{{Colors.white_hex}}} зашёл на сервер!")
+        self.send_outdated_client_warning()
         if not self.checks.jailed:
             self.force_class_selection()
             self.toggle_spectating(False)
@@ -527,7 +537,10 @@ def on_player_disconnect(player: Player, reason: int) -> None:
             player,
             disabled_ping_td=player.settings.disabled_ping_td,
             disabled_global_chat_gw=player.settings.disabled_global_chat_gw,
-            spawn_in_house=player.settings.spawn_in_house
+            spawn_in_house=player.settings.spawn_in_house,
+            outdated_version_warning=player.settings.outdated_version_warning,
+            use_squad_tag_in_text=player.settings.use_squad_tag_in_text
+
         )
 
     return Player.delete_registry(player)
@@ -666,8 +679,12 @@ def on_player_text(player: Player, text: str) -> False:
         return False
 
     if player.mode == ServerMode.freeroam_world or player.mode in ServerMode.deathmatch_worlds:
+        prefix = ""
+        if player.squad:
+            prefix = f'[{player.squad.tag if player.settings.use_squad_tag_in_text else player.squad.name}] | '
+
         send_client_message_to_all(
-            player.color, f"{f'[{player.squad.tag}] | ' if player.squad else ''}{player.get_name()}[{player.id}]:{{{'FFFFFF'}}} {text}"
+            player.color, f"{prefix}{player.get_name()}[{player.id}]:{{{'FFFFFF'}}} {text}"
         )
         return False
 
@@ -1289,21 +1306,27 @@ class Dialogs:
     @classmethod
     def show_gangzone_choice_dialog(cls, player: Player, turf_id: int) -> Dialog:
         player = Player.from_registry_native(player)
-        player._gz_choice = turf_id
-        return Dialog.create(2, f"Список территорий", "Проложить GPS", "Ок", "Закрыть", on_response=cls.gangzone_choice_response).show(player)
+        player.cache["GANGZONE_CHOICE"] = turf_id
+        return Dialog.create(
+            2, f"Список территорий",
+            "Проложить GPS",
+            "Ок",
+            "Закрыть",
+            on_response=cls.gangzone_choice_response
+            ).show(player)
 
     @classmethod
     def gangzone_choice_response(cls, player: Player, response: int, list_item: int, input_text: str) -> Dialog:
         player = Player.from_registry_native(player)
         if not response:
+            del player.cache["GANGZONE_CHOICE"]
             return cls.show_gangzones_dialog_page_one(player)
 
         if player.get_virtual_world() == ServerMode.gangwar_world:
             return player.send_error_message("Использовать команду можно только вне дома!")
 
-        gangzone = DataBase.load_gangzone(player._gz_choice)
+        gangzone = DataBase.load_gangzone(player.cache["GANGZONE_CHOICE"])
         x, y = get_center(gangzone.min_x, gangzone.max_x, gangzone.min_y, gangzone.max_y)
-        player.send_message(f"Маршрут GPS построен. Используйте {{{Colors.cmd_hex}}}/gps{{{Colors.white_hex}}}, для отключения.")
         return player.set_checkpoint_to_gangzone(x, y, 0)
 
     @classmethod
@@ -1523,7 +1546,8 @@ class Dialogs:
                 f"3. {'Включить' if player.settings.disabled_ping_td else 'Отключить'} показание пинга\n"
                 f"4. {'Отключить' if player.settings.disabled_global_chat_gw else 'Включить'} глобальный чат в режиме GangWar по умолчанию\n"
                 f"5. {'Отключить' if player.settings.spawn_in_house else 'Включить'} спавн в доме по умолчанию\n"
-
+                f"6. {'Включить' if player.settings.outdated_version_warning else 'Отключить'} предупреждение об устаревшой версии\n"
+                f"7. {'Отключить' if player.settings.use_squad_tag_in_text else 'Включить'} использование тега фракции в чате\n"
             ),
             "Ок",
             "Назад",
@@ -1570,6 +1594,24 @@ class Dialogs:
                 player.settings.spawn_in_house = True
 
             return player.send_message(f"Вы {{{Colors.cmd_hex}}}{'включили' if player.settings.spawn_in_house else 'отключили'}{{{Colors.white_hex}}} спавн в доме по умолчанию.")
+
+        if list_item == 5:
+            if player.settings.outdated_version_warning:
+                player.settings.outdated_version_warning = False
+
+            else:
+                player.settings.outdated_version_warning = True
+
+            return player.send_message(f"Вы {{{Colors.cmd_hex}}}{'отключили' if player.settings.outdated_version_warning else 'включили'}{{{Colors.white_hex}}} предупреждение об устарвешей версии.")
+
+        if list_item == 6:
+            if player.settings.use_squad_tag_in_text:
+                player.settings.use_squad_tag_in_text = False
+
+            else:
+                player.settings.use_squad_tag_in_text = True
+
+            return player.send_message(f"Вы {{{Colors.cmd_hex}}}{'включили' if player.settings.use_squad_tag_in_text else 'отключили'}{{{Colors.white_hex}}} использование тега фракции в чате.")
 
     @classmethod
     def show_email_privacy_dialog(cls, player) -> None:

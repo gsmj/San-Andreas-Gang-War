@@ -378,9 +378,7 @@ class Squad:
                 )
 
     def has_permissions(self, player: "Player", *permissions: tuple[str]) -> bool:
-        try:
-            self.members[player.name]
-        except:
+        if not player.name in self.members:
             return False
 
         for rank in self.ranks[self.members[player.name]]:
