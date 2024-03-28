@@ -78,6 +78,8 @@ class PlayerSettings:
     disabled_ping_td: bool = True # Чтобы при коннекте не показывать
     disabled_global_chat_gw: bool = False
     spawn_in_house: bool = False
+    outdated_version_warning: bool = False
+    use_squad_tag_in_text: bool = False
 
 
 @dataclass(repr=False)

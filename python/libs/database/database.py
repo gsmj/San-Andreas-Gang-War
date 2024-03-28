@@ -7,8 +7,7 @@ from sqlalchemy import (Boolean, Column, DateTime, Float, Identity, Integer,
                         String, and_, create_engine, delete, select)
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-from pysamp.gangzone import Gangzone
-from typing import Sequence
+# import pysamp.gangzone as py_gangzone
 
 default_gang_zones = [
     (1642.710571,-2174.567871,1770.710571,-2073.567871),
@@ -225,6 +224,8 @@ class PlayerSettings(Base):
     disabled_ping_td = Column(Boolean(), default=False)
     disabled_global_chat_gw = Column(Boolean(), default=False)
     spawn_in_house = Column(Boolean(), default=False)
+    outdated_version_warning = Column(Boolean(), default=False)
+    use_squad_tag_in_text = Column(Boolean(), default=False)
 
 
 class GangZone(Base):
@@ -455,10 +456,10 @@ class DataBase():
         if not cls.get_gangzone():
             create = True
 
-        for gz in default_gang_zones:
-            i = Gangzone.create(gz[0], gz[1], gz[2], gz[3])
-            if create:
-                cls.create_gangzone(i.id, -1, gz[0], gz[1], gz[2], gz[3])
+        # for gz in default_gang_zones:
+        #     i = py_gangzone.Gangzone.create(gz[0], gz[1], gz[2], gz[3])
+        #     if create:
+        #         cls.create_gangzone(i.id, -1, gz[0], gz[1], gz[2], gz[3])
 
         print(f"Created: GangZones (database & server)")
 
@@ -671,10 +672,10 @@ class DataBase():
         if not cls.get_squad_gangzone(): # Чтобы не делать по 158 запросов в бд
             create = True
 
-        for gz in default_squad_zones:
-            i = Gangzone.create(gz[0], gz[1], gz[2], gz[3])
-            if create:
-                cls.create_squad_gangzone(i.id, -1, gz[0], gz[1], gz[2], gz[3])
+        # for gz in default_squad_zones:
+        #     i = py_gangzone.Create.create(gz[0], gz[1], gz[2], gz[3])
+        #     if create:
+        #         cls.create_squad_gangzone(i.id, -1, gz[0], gz[1], gz[2], gz[3])
 
         print(f"Created: SquadGangZones (database & server)")
 

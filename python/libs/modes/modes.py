@@ -370,6 +370,7 @@ class Freeroam:
         DeathMatch.disable_timer_for_player(player)
         Squad.show_squad_gangzones_for_player(player)
         player.set_spawn_protection_timer()
+        player.set_color_ex(randint(0, 16777215))
         if player.squad:
             player.set_color_ex(player.squad.color)
             if player.squad.is_capturing:
@@ -381,7 +382,6 @@ class Freeroam:
                 cls.set_spawn_info_for_player(player)
                 return
 
-        player.set_color_ex(randint(0, 16777215))
         if player.settings.spawn_in_house and player.house:
             # Если стоит спавн в доме и есть дом
             player.checks.in_house = True
