@@ -7,8 +7,8 @@ from pydpc.driftcounter.callbacks import register as register_drift_callbacks
 from pysamp import (add_player_class, disable_interior_enter_exits,
                     enable_stunt_bonus_for_all,
                     manual_vehicle_engine_and_lights,
-                    send_client_message_to_all, send_rcon_command,
-                    set_game_mode_text, set_world_time, show_name_tags,
+                    send_client_message_to_all, gang_zone_create,
+                    set_world_time, show_name_tags,
                     show_player_markers, use_player_ped_anims)
 from pysamp.timer import set_timer
 from pystreamer import register_callbacks
@@ -51,8 +51,8 @@ def on_ready():
     disable_interior_enter_exits()
     show_name_tags(True)
     show_player_markers(1)
-    DataBase.create_gangzones()
-    DataBase.create_squad_gangzones()
+    DataBase.create_gangzones(gang_zone_create)
+    DataBase.create_squad_gangzones(gang_zone_create)
     create_textdraws()
     create_objects()
     create_labels()

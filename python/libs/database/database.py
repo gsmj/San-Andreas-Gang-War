@@ -1,6 +1,7 @@
 import platform
 from dataclasses import dataclass
 from datetime import datetime
+from typing import Callable
 from zoneinfo import ZoneInfo
 
 from sqlalchemy import (Boolean, Column, DateTime, Float, Identity, Integer,
@@ -451,15 +452,15 @@ class DataBase():
             session.commit()
 
     @classmethod
-    def create_gangzones(cls):
+    def create_gangzones(cls, func: Callable):
         create = False
         if not cls.get_gangzone():
             create = True
 
         for gz in default_gang_zones:
-            i = py_gangzone.Gangzone.create(gz[0], gz[1], gz[2], gz[3])
+            i = func(gz[0], gz[1], gz[2], gz[3])
             if create:
-                cls.create_gangzone(i.id, -1, gz[0], gz[1], gz[2], gz[3])
+                cls.create_gangzone(i, -1, gz[0], gz[1], gz[2], gz[3])
 
         print(f"Created: GangZones (database & server)")
 
@@ -667,15 +668,15 @@ class DataBase():
             session.commit()
 
     @classmethod
-    def create_squad_gangzones(cls):
+    def create_squad_gangzones(cls, func: Callable):
         create = False
         if not cls.get_squad_gangzone(): # Чтобы не делать по 158 запросов в бд
             create = True
 
         for gz in default_squad_zones:
-            i = py_gangzone.Create.create(gz[0], gz[1], gz[2], gz[3])
+            i = func(gz[0], gz[1], gz[2], gz[3])
             if create:
-                cls.create_squad_gangzone(i.id, -1, gz[0], gz[1], gz[2], gz[3])
+                cls.create_squad_gangzone(i, -1, gz[0], gz[1], gz[2], gz[3])
 
         print(f"Created: SquadGangZones (database & server)")
 
