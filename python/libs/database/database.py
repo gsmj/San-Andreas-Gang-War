@@ -8,7 +8,6 @@ from sqlalchemy import (Boolean, Column, DateTime, Float, Identity, Integer,
                         String, and_, create_engine, delete, select)
 from sqlalchemy.orm import declarative_base, sessionmaker
 
-import pysamp.gangzone as py_gangzone
 
 default_gang_zones = [
     (1642.710571,-2174.567871,1770.710571,-2073.567871),
