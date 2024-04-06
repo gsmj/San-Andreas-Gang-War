@@ -233,7 +233,7 @@ class GangZone(Base):
     uid = Column(Integer, Identity(), primary_key=True)
     id = Column(Integer())
     gang_id = Column(Integer())
-    color = Column(Integer())
+    color = Column(Integer(), default=0xFFFFFFAA)
     min_x = Column(Float())
     min_y = Column(Float())
     max_x = Column(Float())

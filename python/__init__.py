@@ -62,9 +62,11 @@ def on_ready():
     gangzones = DataBase.load_gangzones_order_by()
     if gangzones:
         for gangzone in gangzones:
-            color = gangzone.color
             if gangzone.gang_id != -1:
                 color = gangs[gangzone.gang_id].color
+
+            else:
+                color = gangzone.color
 
             GangZoneData(
                 gangzone.id,

@@ -603,7 +603,7 @@ def on_player_death(player: Player, killer: Player, reason: int) -> None:
     player.deaths += 1
     playertextdraws.hide_speedometer(player)
     playertextdraws.hide_drift_counter(player, destroy=True)
-    if player.mode == ServerMode.gangwar_world or player.mode == ServerMode.gangwar_world:
+    if player.mode == ServerMode.gangwar_world:
         player.masks = 0
         player.heals = 0
         GangWar.set_spawn_info_for_player(player)
@@ -907,10 +907,9 @@ def on_player_key_state_change(player: Player, new_keys: int, old_keys: int) -> 
 @Player.using_registry
 def on_player_state_change(player: Player, new_state: int, old_state: int) -> None:
     if new_state == PLAYER_STATE_DRIVER:
-
         player.send_message(f"Чтобы завести авто используйте {{{Colors.cmd_hex}}}LCTRL{{{Colors.white_hex}}}.")
+        player.update_vehicle_inst(Vehicle.from_registry_native(player.get_vehicle_id()))
         p_veh = player.player_vehicle
-        player.update_vehicle_inst(p_veh)
         if p_veh and p_veh.is_car:
             playertextdraws.create_speedometer(player)
             playertextdraws.show_speedometer(player, p_veh)
@@ -1210,7 +1209,8 @@ class Dialogs:
 
         player.gang_id = list_item
         player.gang = gangs[player.gang_id]
-        player.spawn()
+        player.set_mode(ServerMode.gangwar_world)
+        return GangWar.enable_mode_for_player(player)
 
     @classmethod
     def show_select_deathmatch_dialog(cls, player: Player) -> int:
