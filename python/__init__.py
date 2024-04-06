@@ -27,6 +27,7 @@ from .libs.squad.squad import Squad, SquadGangZone, squad_gangzone_pool, squad_p
 from .libs.static.gangzones import create_gangzones
 from .libs.static.labels import create_labels
 from .libs.static.textdraws import create_textdraws
+from .libs.static.vehicles import create_gang_vehicles
 from .libs.utils.consts import NO_VEHICLE_OWNER
 from .libs.utils.data import *
 from .player import Player
@@ -57,13 +58,15 @@ def on_ready():
     create_objects()
     create_labels()
     create_gangzones()
+    create_gang_vehicles()
     gangzones = DataBase.load_gangzones_order_by()
     if gangzones:
         for gangzone in gangzones:
             if gangzone.gang_id != -1:
                 color = gangs[gangzone.gang_id].color
+
             else:
-                color = 0xFFFFFFAA
+                color = gangzone.color
 
             GangZoneData(
                 gangzone.id,

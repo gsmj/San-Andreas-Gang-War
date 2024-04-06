@@ -159,4 +159,4 @@ def create_textdraws() -> None:
     fps_and_ping[0].use_box(False)
     fps_and_ping[0].set_proportional(True)
     fps_and_ping[0].set_selectable(False)
-    return print(f"Created: TextDraws (server)")
+    return print(f"Created: TextDraws (static)")
