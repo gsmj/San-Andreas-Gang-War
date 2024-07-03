@@ -3,11 +3,11 @@ import ssl
 from email.message import EmailMessage
 from smtplib import SMTP_SSL
 
-ROOT = "YUDBBot@gmail.com"
-PASSWORD = "vxmo ddrz autc kvby"
+ROOT = ""
+PASSWORD = ""
 email = EmailMessage()
 email["From"] = ROOT
-email["To"] = "mestodan230@gmail.com"
+email["To"] = ""
 email["Subject"] = "SAGW - Восстановление аккаунта "
 MESSAGE_RESTORE_ACCOUNT = """
 Текст
