@@ -4,12 +4,17 @@ from zoneinfo import ZoneInfo
 
 from pydpc.driftcounter import *
 from pydpc.driftcounter.callbacks import register as register_drift_callbacks
-from pysamp import (add_player_class, disable_interior_enter_exits,
-                    enable_stunt_bonus_for_all,
-                    manual_vehicle_engine_and_lights,
-                    send_client_message_to_all, gang_zone_create,
-                    set_world_time, show_name_tags,
-                    show_player_markers, use_player_ped_anims)
+from pysamp import (
+    add_player_class,
+    disable_interior_enter_exits,
+    enable_stunt_bonus_for_all,
+    send_client_message_to_all,
+    gang_zone_create,
+    set_world_time,
+    show_name_tags,
+    show_player_markers,
+    use_player_ped_anims
+)
 from pysamp.timer import set_timer
 from pystreamer import register_callbacks
 
@@ -47,7 +52,6 @@ def on_ready():
     drift_set_divider(1000)
     drift_set_damage_check()
     enable_stunt_bonus_for_all(False)
-    manual_vehicle_engine_and_lights()
     use_player_ped_anims()
     disable_interior_enter_exits()
     show_name_tags(True)

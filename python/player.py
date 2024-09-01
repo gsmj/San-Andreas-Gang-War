@@ -496,7 +496,6 @@ def on_player_disconnect(player: Player, reason: int) -> None:
 
     DeathMatch.disable_timer_for_player(player)
     Jail.disable_timer_for_player(player)
-    playertextdraws.hide_speedometer(player)
     kill_timer(player.timers.every_sec)
     if player.checks.logged:
         DataBase.save_player(
@@ -601,7 +600,6 @@ def on_player_death(player: Player, killer: Player, reason: int) -> None:
     killer = Player.from_registry_native(killer)
     player.kick_if_not_logged()
     player.deaths += 1
-    playertextdraws.hide_speedometer(player)
     playertextdraws.hide_drift_counter(player, destroy=True)
     if player.mode == ServerMode.gangwar_world:
         player.masks = 0
@@ -839,50 +837,6 @@ def on_player_key_state_change(player: Player, new_keys: int, old_keys: int) -> 
     if (old_keys == 65536) and (new_keys == 0):
         return Dialogs.show_mn_dialog(player)
 
-    if player.get_state() == PLAYER_STATE_DRIVER and old_keys == 1:
-        p_veh = player.player_vehicle
-        if p_veh and p_veh.is_car:
-            if p_veh.engine == 1:
-                p_veh.engine = 0
-            else:
-                p_veh.engine = 1
-
-            playertextdraws.update_speedometer_sensors(
-                player,
-                p_veh
-            )
-            return p_veh.set_params_ex(
-                p_veh.engine,
-                p_veh.lights,
-                0,
-                0,
-                0,
-                0,
-                0
-            )
-
-    if player.get_state() == PLAYER_STATE_DRIVER and old_keys == 4:
-        p_veh = player.player_vehicle
-        if p_veh and p_veh.is_car:
-            if p_veh.lights == 1:
-                p_veh.lights = 0
-            else:
-                p_veh.lights = 1
-
-            playertextdraws.update_speedometer_sensors(
-                player,
-                p_veh
-            )
-            return p_veh.set_params_ex(
-                p_veh.engine,
-                p_veh.lights,
-                0,
-                0,
-                0,
-                0,
-                0
-            )
-
     if player.get_state() == PLAYER_STATE_DRIVER and player.mode == ServerMode.freeroam_world:
         p_veh = player.player_vehicle
         if new_keys == 1 or new_keys == 9 or new_keys == 33 and old_keys != 1 or old_keys != 9 or old_keys != 33:
@@ -907,44 +861,15 @@ def on_player_key_state_change(player: Player, new_keys: int, old_keys: int) -> 
 @Player.using_registry
 def on_player_state_change(player: Player, new_state: int, old_state: int) -> None:
     if new_state == PLAYER_STATE_DRIVER:
-        player.send_message(f"Чтобы завести авто используйте {{{Colors.cmd_hex}}}LCTRL{{{Colors.white_hex}}}.")
         player.update_vehicle_inst(Vehicle.from_registry_native(player.get_vehicle_id()))
         p_veh = player.player_vehicle
-        if p_veh and p_veh.is_car:
-            playertextdraws.create_speedometer(player)
-            playertextdraws.show_speedometer(player, p_veh)
-
-            if player.mode == ServerMode.freeroam_world:
-                playertextdraws.create_drift_counter(player)
-        else:
-            return p_veh.set_params_ex(
-                1,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0
-            )
+        if p_veh and p_veh.is_car and player.mode == ServerMode.freeroam_world:
+            playertextdraws.create_drift_counter(player)
 
     if new_state == PLAYER_STATE_ONFOOT and old_state == PLAYER_STATE_DRIVER:
         p_veh = player.player_vehicle
-        if p_veh and p_veh.is_car:
-            playertextdraws.hide_speedometer(player)
-
-            if player.mode == ServerMode.freeroam_world:
-                playertextdraws.hide_drift_counter(player, destroy=True)
-
-        else:
-            return p_veh.set_params_ex(
-                0,
-                0,
-                0,
-                0,
-                0,
-                0,
-                0
-            )
+        if p_veh and p_veh.is_car and player.mode == ServerMode.freeroam_world:
+            playertextdraws.hide_drift_counter(player, destroy=True)
 
 @Drift.on_start
 @Player.using_registry
