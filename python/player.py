@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 from samp import (INVALID_PLAYER_ID, PLAYER_STATE_DRIVER,  # type: ignore
                   PLAYER_STATE_ONFOOT)
 
-from pydpc.driftcounter.drift import Drift
+from driftcounter.driftcounter.drift import Drift
 from pysamp import (call_remote_function, create_player_3d_text_label,
                     delete_player_3d_text_label, kick, send_client_message,
                     send_client_message_to_all, get_player_version)

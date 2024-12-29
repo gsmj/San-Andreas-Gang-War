@@ -2,8 +2,8 @@ import random
 from datetime import datetime
 from zoneinfo import ZoneInfo
 
-from pydpc.driftcounter import *
-from pydpc.driftcounter.callbacks import register as register_drift_callbacks
+from driftcounter.driftcounter import *
+from driftcounter.driftcounter.callbacks import register as register_drift_callbacks
 from pysamp import (
     add_player_class,
     disable_interior_enter_exits,

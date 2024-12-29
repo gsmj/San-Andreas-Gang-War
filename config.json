@@ -79,7 +79,7 @@
         "legacy_plugins": [
             "streamer",
             "PySAMP",
-            "dpc"
+            "DriftPointsCounter"
         ],
         "main_scripts": [
             "empty"
