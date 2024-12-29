@@ -88,12 +88,12 @@
     "rcon": {
         "allow_teleport": false,
         "enable": true,
-        "password": "SAGWompRCON13022024_1752"
+        "password": "changeme"
     },
     "sleep": 5.0,
     "use_dyn_ticks": true,
-    "website": "sanandreasonline.github.io/",
+    "website": "https://github.com/gsmj",
     "discord": {
-        "invite": "https://discord.gg/JgM97qPxFT"
+        "invite": "https://discord.gg/xR5h6Gpuye"
     }
 }
