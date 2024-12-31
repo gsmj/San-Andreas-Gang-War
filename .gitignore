@@ -1,5 +1,4 @@
 # .gitignore
 **/__pycache__
 **/sqlite3.db
-**/sagw.log
 /log.txt
